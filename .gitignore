@@ -36,6 +36,7 @@ node_modules/
 .firebase/
 .vercel/
 .npm-cache/
+.netlify-npm-cache/
 
 # Symbolication related
 app.*.symbols
