@@ -377,6 +377,7 @@ class _ConnectState extends State<Connect> {
                               'assets/images/logo (2).png',
                               width: 100,
                               height: 100,
+                              color: const Color(0xFF132238),
                             ),
                           ),
                         ),

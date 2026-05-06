@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:gestion_locative/locataire.dart';
 
-class AddTenantPage extends StatefulWidget {
-  const AddTenantPage({super.key});
+class   Ajout extends StatefulWidget {
+  const Ajout({super.key});
 
   @override
-  State<AddTenantPage> createState() => _AddTenantPageState();
+  State<Ajout> createState() => _AjoutState();
 }
 
-class _AddTenantPageState extends State<AddTenantPage> {
+class _AjoutState extends State<Ajout> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _roomController = TextEditingController();

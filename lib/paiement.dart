@@ -3,14 +3,14 @@ import 'package:gestion_locative/Dashboard.dart';
 import 'package:gestion_locative/document.dart';
 import 'package:gestion_locative/profil.dart';
 
-class PaiementPage extends StatefulWidget {
-  const PaiementPage({super.key});
+class Paiement extends StatefulWidget {
+  const Paiement({super.key});
 
   @override
-  State<PaiementPage> createState() => _PaiementPageState();
+  State<Paiement> createState() => _PaiementState();
 }
 
-class _PaiementPageState extends State<PaiementPage> {
+class _PaiementState extends State<Paiement> {
   String _selectedFilter = 'Tous les flux';
 
   final List<PaymentRecord> _payments = [
@@ -124,12 +124,12 @@ class _PaiementPageState extends State<PaiementPage> {
           } else if (index == 2) {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => const DocumentPage()),
+              MaterialPageRoute(builder: (_) => const Document()),
             );
           } else if (index == 3) {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => const ProfilPage()),
+              MaterialPageRoute(builder: (_) => const Profil()),
             );
           }
         },
@@ -495,7 +495,7 @@ class _PaymentTile extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 24,
-              backgroundColor: statusColor,
+              backgroundColor: statusColor.withValues(alpha: 0.12),
               child: Icon(Icons.payments_outlined, color: statusColor),
             ),
             const SizedBox(width: 14),
@@ -541,7 +541,7 @@ class _PaymentTile extends StatelessWidget {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: statusColor,
+                    color: statusColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(

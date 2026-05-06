@@ -6,8 +6,8 @@ import 'package:gestion_locative/conect.dart';
 import 'package:gestion_locative/document.dart';
 import 'package:gestion_locative/paiement.dart';
 
-class ProfilPage extends StatelessWidget {
-  const ProfilPage({super.key});
+class Profil extends StatelessWidget {
+  const Profil({super.key});
 
   static Future<void> _signOut(BuildContext context) async {
     await FirebaseAuth.instance.signOut();
@@ -90,12 +90,12 @@ class ProfilPage extends StatelessWidget {
           } else if (index == 1) {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => const PaiementPage()),
+              MaterialPageRoute(builder: (_) => const Paiement()),
             );
           } else if (index == 2) {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => const DocumentPage()),
+              MaterialPageRoute(builder: (_) => const Document()),
             );
           }
         },
@@ -423,7 +423,7 @@ class _ProfileActionsCard extends StatelessWidget {
             icon: Icons.logout_outlined,
             title: 'Deconnexion',
             subtitle: 'Quitter le compte actuel',
-            onTap: () => ProfilPage._signOut(context),
+            onTap: () => Profil._signOut(context),
           ),
         ],
       ),

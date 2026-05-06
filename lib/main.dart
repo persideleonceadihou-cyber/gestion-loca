@@ -36,13 +36,13 @@ class MyApp extends StatelessWidget {
       routes: {
         '/connect': (context) => const Connect(),
         '/dashboard': (context) => const Dashboard(),
-        '/paiement': (context) => const PaiementPage(),
-        '/document': (context) => const DocumentPage(),
-        '/profil': (context) => const ProfilPage(),
+        '/paiement': (context) => const Paiement(),
+        '/document': (context) => const Document(),
+        '/profil': (context) => const Profil(),
         '/scan': (context) => const ScanPage(),
         "/proprietaire": (context) => const Propretaire(),
         "/locataire": (context) => const Locataire(),
-        "/ajout": (context) => const AddTenantPage(),
+        "/ajout": (context) => const Ajout(),
         "/payeCash": (context) => const PayeCashScreen(),
       },
     );

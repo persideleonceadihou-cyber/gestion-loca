@@ -3,8 +3,8 @@ import 'package:gestion_locative/Dashboard.dart';
 import 'package:gestion_locative/paiement.dart';
 import 'package:gestion_locative/profil.dart';
 
-class DocumentPage extends StatelessWidget {
-  const DocumentPage({super.key});
+class Document extends StatelessWidget {
+  const Document({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -119,12 +119,12 @@ class DocumentPage extends StatelessWidget {
           } else if (index == 1) {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => const PaiementPage()),
+              MaterialPageRoute(builder: (_) => const Paiement()),
             );
           } else if (index == 3) {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => const ProfilPage()),
+              MaterialPageRoute(builder: (_) => const Profil()),
             );
           }
         },
@@ -338,7 +338,7 @@ class _DocumentSection extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: accentColor.withOpacity(0.12),
+                  color: accentColor,
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(Icons.folder_copy_outlined, color: accentColor),

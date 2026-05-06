@@ -154,21 +154,21 @@ class _DashboardState extends State<Dashboard> {
           if (index == 1) {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => const PaiementPage()),
+              MaterialPageRoute(builder: (_) => const Paiement()),
             );
             return;
           }
           if (index == 2) {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => const DocumentPage()),
+              MaterialPageRoute(builder: (_) => const Document()),
             );
             return;
           }
           if (index == 3) {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => const ProfilPage()),
+              MaterialPageRoute(builder: (_) => const Profil()),
             );
             return;
           }

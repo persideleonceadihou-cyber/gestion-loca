@@ -369,7 +369,7 @@ class _LocataireState extends State<Locataire> {
     return true;
   }
 
-  Future<void> _addTenant() async {
+  Future<void> _ajout() async {
     final collection = _tenantCollection;
     if (collection == null) {
       _showSnackBar('Connectez-vous avant d ajouter un locataire.');
@@ -377,7 +377,7 @@ class _LocataireState extends State<Locataire> {
     }
 
     final newTenant = await Navigator.of(context).push<TenantRecord>(
-      MaterialPageRoute(builder: (context) => const AddTenantPage()),
+      MaterialPageRoute(builder: (context) => const Ajout()),
     );
 
     if (newTenant == null || !mounted) {
@@ -596,7 +596,7 @@ class _LocataireState extends State<Locataire> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _addTenant,
+        onPressed: _ajout,
         backgroundColor: const Color(0xFF132238),
         foregroundColor: Colors.white,
         icon: const Icon(Icons.person_add_alt_1_outlined),
@@ -652,7 +652,7 @@ class _LocataireState extends State<Locataire> {
 
                   if (tenants.isEmpty) {
                     if (_cachedTenants.isEmpty) {
-                      return _EmptyTenants(onAdd: _addTenant);
+                      return _EmptyTenants(onAdd: _ajout);
                     }
                     return _TenantList(
                       tenants: _cachedTenants,
