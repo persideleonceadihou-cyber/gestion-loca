@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:gestion_locative/ajoutMaison.dart';
 import 'package:gestion_locative/document.dart';
 import 'package:gestion_locative/paiement.dart';
 import 'package:gestion_locative/profil.dart';
@@ -138,11 +139,17 @@ class _DashboardState extends State<Dashboard> {
       ),
       body: IndexedStack(index: _selectedIndex, children: _pages),
       floatingActionButton: _selectedIndex == 0
-          ? FloatingActionButton(
-              onPressed: () => _showImageOptions(context),
-              child: const Icon(Icons.add),
-            )
-          : null,
+    ? FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AjoutMaison()),
+          );
+        },
+        child: const Icon(Icons.add),
+      )
+    : null,
+
 
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,

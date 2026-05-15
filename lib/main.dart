@@ -39,7 +39,7 @@ class MyApp extends StatelessWidget {
         '/paiement': (context) => const Paiement(),
         '/document': (context) => const Document(),
         '/profil': (context) => const Profil(),
-        '/scan': (context) => const ScanPage(),
+        '/scan': (context) => const Scan(),
         "/proprietaire": (context) => const Propretaire(),
         "/locataire": (context) => const Locataire(),
         "/ajout": (context) => const Ajout(),

@@ -461,7 +461,7 @@ class _UploadPanel extends StatefulWidget {
 class _UploadPanelState extends State<_UploadPanel> {
   String? _lastScanLabel;
 
-  Future<void> _openScanPage() async {
+  Future<void> openScan() async {
     final label = await Navigator.of(context).pushNamed<String>('/scan');
 
     if (label == null) {
@@ -514,25 +514,13 @@ class _UploadPanelState extends State<_UploadPanel> {
             spacing: 12,
             runSpacing: 12,
             children: [
-              ElevatedButton.icon(
-                onPressed: _openScanPage,
+              ElevatedButton(
+                onPressed: openScan,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor: const Color(0xFF132238),
                 ),
-                icon: const Icon(Icons.camera_alt_outlined),
-                label: const Text('Scanner'),
-              ),
-              OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.of(context).pushNamed('/scan');
-                },
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  side: const BorderSide(color: Color(0xFF5C7FA3)),
-                ),
-                icon: const Icon(Icons.camera_alt_outlined),
-                label: const Text('Scanner'),
+                child: const Text('Scanner'),
               ),
 
               OutlinedButton.icon(
