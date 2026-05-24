@@ -1,7 +1,5 @@
 import 'dart:convert';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:gestion_locative/ajout.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -74,60 +72,6 @@ class TenantRecord {
     required this.notes,
     required this.emergencyContact,
   });
-
-  factory TenantRecord.fromFirestore(
-    QueryDocumentSnapshot<Map<String, dynamic>> document,
-  ) {
-    final data = document.data();
-    final status = _readString(data, 'statusLabel', fallback: 'A jour');
-
-    return TenantRecord(
-      id: document.id,
-      name: _readString(data, 'name', fallback: 'Locataire sans nom'),
-      roomNumber: _readString(data, 'roomNumber', fallback: '-'),
-      propertyName: _readString(
-        data,
-        'propertyName',
-        fallback: 'Bien non renseigne',
-      ),
-      phone: _readString(data, 'phone', fallback: 'Telephone non renseigne'),
-      email: _readString(data, 'email', fallback: 'Email non renseigne'),
-      rentAmount: _readString(data, 'rentAmount', fallback: '0 FCFA'),
-      statusLabel: status,
-      statusColor: _statusColorFor(status),
-      balanceLabel: _readString(
-        data,
-        'balanceLabel',
-        fallback: 'Suivi non renseigne',
-      ),
-      occupationLabel: _readString(
-        data,
-        'occupationLabel',
-        fallback: 'Date non renseignee',
-      ),
-      contract: TenantDocument.fromMap(
-        data['contract'] is Map<String, dynamic>
-            ? data['contract'] as Map<String, dynamic>
-            : null,
-      ),
-      inventory: TenantDocument.fromMap(
-        data['inventory'] is Map<String, dynamic>
-            ? data['inventory'] as Map<String, dynamic>
-            : null,
-      ),
-      paymentSummary: _readString(
-        data,
-        'paymentSummary',
-        fallback: 'Aucun paiement renseigne',
-      ),
-      notes: _readString(data, 'notes', fallback: 'Aucune note ajoutee.'),
-      emergencyContact: _readString(
-        data,
-        'emergencyContact',
-        fallback: 'Contact urgence non renseigne',
-      ),
-    );
-  }
 
   factory TenantRecord.fromMap(Map<String, dynamic> data) {
     final status = _readString(data, 'statusLabel', fallback: 'A jour');
@@ -253,19 +197,92 @@ Color _statusColorFor(String status) {
   }
 }
 
-int _createdAtMillis(Map<String, dynamic> data) {
-  final millis = data['createdAtMillis'];
-  if (millis is int) {
-    return millis;
-  }
-
-  final createdAt = data['createdAt'];
-  if (createdAt is Timestamp) {
-    return createdAt.millisecondsSinceEpoch;
-  }
-
-  return 0;
-}
+const List<TenantRecord> _localPreviewTenants = [
+  TenantRecord(
+    id: 'preview_1',
+    name: 'Afi Mensah',
+    roomNumber: 'A12',
+    propertyName: 'Residence Les Palmiers',
+    phone: '+229 97 45 12 30',
+    email: 'afi.mensah@email.com',
+    rentAmount: '75 000 FCFA',
+    statusLabel: 'A jour',
+    statusColor: Color(0xFF149954),
+    balanceLabel: 'Solde regle pour mai',
+    occupationLabel: 'Depuis janvier 2026',
+    contract: TenantDocument(
+      title: 'Contrat A12',
+      reference: 'CTR-A12-2026',
+      dateLabel: 'Cree le 5 janvier 2026',
+      state: 'Signe',
+    ),
+    inventory: TenantDocument(
+      title: 'Etat des lieux A12',
+      reference: 'EDL-A12-2026',
+      dateLabel: 'Fait le 5 janvier 2026',
+      state: 'Complet',
+    ),
+    paymentSummary: 'Dernier paiement: 75 000 FCFA le 10 mai',
+    notes: 'Locataire ponctuelle, dossier complet.',
+    emergencyContact: 'Contact urgence: Koffi Mensah - 96 21 44 70',
+  ),
+  TenantRecord(
+    id: 'preview_2',
+    name: 'Jean Houngbo',
+    roomNumber: 'B04',
+    propertyName: 'Immeuble Akpakpa Centre',
+    phone: '+229 95 18 44 02',
+    email: 'jean.houngbo@email.com',
+    rentAmount: '60 000 FCFA',
+    statusLabel: 'Paiement attendu',
+    statusColor: Color(0xFFF39C12),
+    balanceLabel: 'Paiement attendu cette semaine',
+    occupationLabel: 'Depuis mars 2026',
+    contract: TenantDocument(
+      title: 'Contrat B04',
+      reference: 'CTR-B04-2026',
+      dateLabel: 'Cree le 12 mars 2026',
+      state: 'Signe',
+    ),
+    inventory: TenantDocument(
+      title: 'Etat des lieux B04',
+      reference: 'EDL-B04-2026',
+      dateLabel: 'A verifier',
+      state: 'En cours',
+    ),
+    paymentSummary: 'Prochaine echeance: 60 000 FCFA',
+    notes: 'Relancer si le paiement n arrive pas avant vendredi.',
+    emergencyContact: 'Contact urgence: Mariam Houngbo - 91 32 80 16',
+  ),
+  TenantRecord(
+    id: 'preview_3',
+    name: 'Nadia Soglo',
+    roomNumber: 'C07',
+    propertyName: 'Villa Fidjrosse',
+    phone: '+229 99 07 63 21',
+    email: 'nadia.soglo@email.com',
+    rentAmount: '120 000 FCFA',
+    statusLabel: 'Retard',
+    statusColor: Color(0xFFD64545),
+    balanceLabel: '1 mois de retard',
+    occupationLabel: 'Depuis novembre 2025',
+    contract: TenantDocument(
+      title: 'Contrat C07',
+      reference: 'CTR-C07-2025',
+      dateLabel: 'Cree le 2 novembre 2025',
+      state: 'Signe',
+    ),
+    inventory: TenantDocument(
+      title: 'Etat des lieux C07',
+      reference: 'EDL-C07-2025',
+      dateLabel: 'Fait le 2 novembre 2025',
+      state: 'Complet',
+    ),
+    paymentSummary: 'Retard constate sur le mois de mai',
+    notes: 'Prevoir une relance et proposer un echeancier.',
+    emergencyContact: 'Contact urgence: Eric Soglo - 97 80 14 55',
+  ),
+];
 
 class Locataire extends StatefulWidget {
   const Locataire({super.key});
@@ -275,25 +292,8 @@ class Locataire extends StatefulWidget {
 }
 
 class _LocataireState extends State<Locataire> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   List<TenantRecord> _cachedTenants = [];
-
-  CollectionReference<Map<String, dynamic>>? get _tenantCollection {
-    final uid = _auth.currentUser?.uid;
-    if (uid == null) {
-      return null;
-    }
-    return _firestore.collection('users').doc(uid).collection('tenants');
-  }
-
-  String? get _localCacheKey {
-    final uid = _auth.currentUser?.uid;
-    if (uid == null) {
-      return null;
-    }
-    return 'tenants_$uid';
-  }
+  static const String _localCacheKey = 'tenants_local';
 
   @override
   void initState() {
@@ -302,13 +302,8 @@ class _LocataireState extends State<Locataire> {
   }
 
   Future<void> _loadCachedTenants() async {
-    final cacheKey = _localCacheKey;
-    if (cacheKey == null) {
-      return;
-    }
-
     final preferences = await SharedPreferences.getInstance();
-    final encodedTenants = preferences.getStringList(cacheKey) ?? [];
+    final encodedTenants = preferences.getStringList(_localCacheKey) ?? [];
     final tenants = <TenantRecord>[];
 
     for (final encodedTenant in encodedTenants) {
@@ -332,14 +327,9 @@ class _LocataireState extends State<Locataire> {
   }
 
   Future<void> _saveCachedTenants(List<TenantRecord> tenants) async {
-    final cacheKey = _localCacheKey;
-    if (cacheKey == null) {
-      return;
-    }
-
     final preferences = await SharedPreferences.getInstance();
     await preferences.setStringList(
-      cacheKey,
+      _localCacheKey,
       tenants.map((tenant) => jsonEncode(tenant.toMap())).toList(),
     );
   }
@@ -369,13 +359,14 @@ class _LocataireState extends State<Locataire> {
     return true;
   }
 
-  Future<void> _ajout() async {
-    final collection = _tenantCollection;
-    if (collection == null) {
-      _showSnackBar('Connectez-vous avant d ajouter un locataire.');
-      return;
+  List<TenantRecord> get _displayTenants {
+    if (_cachedTenants.isEmpty) {
+      return _localPreviewTenants;
     }
+    return _cachedTenants;
+  }
 
+  Future<void> _ajout() async {
     final newTenant = await Navigator.of(context).push<TenantRecord>(
       MaterialPageRoute(builder: (context) => const Ajout()),
     );
@@ -384,34 +375,17 @@ class _LocataireState extends State<Locataire> {
       return;
     }
 
-    try {
-      final document = collection.doc();
-      final tenantToSave = newTenant.copyWith(id: document.id);
-      final updatedCache = [tenantToSave, ..._cachedTenants];
-      _replaceCachedTenants(updatedCache);
-
-      await document.set({
-        ...tenantToSave.toMap(),
-        'id': document.id,
-        'ownerId': _auth.currentUser!.uid,
-        'createdAt': Timestamp.now(),
-        'createdAtMillis': DateTime.now().millisecondsSinceEpoch,
-      });
-
-      if (!mounted) return;
-      _showSnackBar('${tenantToSave.name} a ete ajoute.');
-    } on FirebaseException catch (error) {
-      debugPrint('Erreur ajout locataire: ${error.code} - ${error.message}');
-      if (!mounted) return;
-      _showSnackBar(error.message ?? 'Impossible d ajouter le locataire.');
-    }
+    final tenantToSave = newTenant.copyWith(
+      id: 'local_${DateTime.now().millisecondsSinceEpoch}',
+    );
+    _replaceCachedTenants([tenantToSave, ..._cachedTenants]);
+    _showSnackBar('${tenantToSave.name} a ete ajoute en local.');
   }
 
   Future<void> _deleteTenant(TenantRecord tenant) async {
-    final collection = _tenantCollection;
     final tenantId = tenant.id;
 
-    if (collection == null || tenantId == null) {
+    if (tenantId == null) {
       _showSnackBar('Impossible de supprimer ce locataire.');
       return;
     }
@@ -443,22 +417,21 @@ class _LocataireState extends State<Locataire> {
       return;
     }
 
-    try {
-      await collection.doc(tenantId).delete();
-      final updatedCache = _cachedTenants
-          .where((cachedTenant) => cachedTenant.id != tenantId)
-          .toList();
-      _replaceCachedTenants(updatedCache);
+    final updatedCache = _cachedTenants
+        .where((cachedTenant) => cachedTenant.id != tenantId)
+        .toList();
+    _replaceCachedTenants(updatedCache);
 
-      if (!mounted) return;
-      _showSnackBar('${tenant.name} a ete supprime.');
-    } on FirebaseException catch (error) {
-      debugPrint(
-        'Erreur suppression locataire: ${error.code} - ${error.message}',
-      );
-      if (!mounted) return;
-      _showSnackBar(error.message ?? 'Impossible de supprimer le locataire.');
-    }
+    if (!mounted) return;
+    _showSnackBar('${tenant.name} a ete supprime.');
+  }
+
+  Widget _buildLocalTenantBody() {
+    return _TenantList(
+      tenants: _displayTenants,
+      onShowDetails: _showTenantDetails,
+      onDelete: _deleteTenant,
+    );
   }
 
   void _showSnackBar(String message) {
@@ -582,8 +555,6 @@ class _LocataireState extends State<Locataire> {
 
   @override
   Widget build(BuildContext context) {
-    final collection = _tenantCollection;
-
     return Scaffold(
       backgroundColor: const Color(0xFFFFF3E0),
       appBar: AppBar(
@@ -602,73 +573,7 @@ class _LocataireState extends State<Locataire> {
         icon: const Icon(Icons.person_add_alt_1_outlined),
         label: const Text('Ajouter'),
       ),
-      body: SafeArea(
-        child: collection == null
-            ? const _AuthRequired()
-            : StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                stream: collection.snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    if (_cachedTenants.isNotEmpty) {
-                      return _TenantList(
-                        tenants: _cachedTenants,
-                        onShowDetails: _showTenantDetails,
-                        onDelete: _deleteTenant,
-                      );
-                    }
-                    return _ErrorState(message: '${snapshot.error}');
-                  }
-
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    if (_cachedTenants.isNotEmpty) {
-                      return _TenantList(
-                        tenants: _cachedTenants,
-                        onShowDetails: _showTenantDetails,
-                        onDelete: _deleteTenant,
-                      );
-                    }
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  final documents = snapshot.data?.docs ?? [];
-                  documents.sort((a, b) {
-                    return _createdAtMillis(
-                      b.data(),
-                    ).compareTo(_createdAtMillis(a.data()));
-                  });
-                  final tenants = documents
-                      .map(TenantRecord.fromFirestore)
-                      .toList();
-
-                  if (tenants.isNotEmpty &&
-                      documents.isNotEmpty &&
-                      !_sameTenantIds(_cachedTenants, tenants)) {
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (mounted) {
-                        _replaceCachedTenants(tenants);
-                      }
-                    });
-                  }
-
-                  if (tenants.isEmpty) {
-                    if (_cachedTenants.isEmpty) {
-                      return _EmptyTenants(onAdd: _ajout);
-                    }
-                    return _TenantList(
-                      tenants: _cachedTenants,
-                      onShowDetails: _showTenantDetails,
-                      onDelete: _deleteTenant,
-                    );
-                  }
-
-                  return _TenantList(
-                    tenants: tenants,
-                    onShowDetails: _showTenantDetails,
-                    onDelete: _deleteTenant,
-                  );
-                },
-              ),
-      ),
+      body: SafeArea(child: _buildLocalTenantBody()),
     );
   }
 }
@@ -732,7 +637,7 @@ class _TenantCard extends StatelessWidget {
                         vertical: 5,
                       ),
                       decoration: BoxDecoration(
-                        color: tenant.statusColor.withValues(alpha: 0.12),
+                        color: tenant.statusColor.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(

@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:gestion_locative/ajoutMaison.dart';
 import 'package:gestion_locative/document.dart';
@@ -88,10 +87,7 @@ class _DashboardState extends State<Dashboard> {
   @override
   Widget build(BuildContext context) {
     final displayedIndex = _selectedIndex == 0 ? 0 : 3;
-    final user = FirebaseAuth.instance.currentUser;
-    final userName = user?.displayName?.trim().isNotEmpty == true
-        ? user!.displayName!
-        : user?.email ?? 'Utilisateur';
+    const userName = 'Utilisateur local';
 
     return Scaffold(
       appBar: AppBar(
@@ -139,17 +135,16 @@ class _DashboardState extends State<Dashboard> {
       ),
       body: IndexedStack(index: _selectedIndex, children: _pages),
       floatingActionButton: _selectedIndex == 0
-    ? FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const AjoutMaison()),
-          );
-        },
-        child: const Icon(Icons.add),
-      )
-    : null,
-
+          ? FloatingActionButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AjoutMaison()),
+                );
+              },
+              child: const Icon(Icons.add),
+            )
+          : null,
 
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
@@ -309,7 +304,6 @@ class _DashboardHomePage extends StatelessWidget {
                 _buildFilterButton(
                   "Payé cash",
                   () => Navigator.pushNamed(context, '/payeCash'),
-                  
                 ),
               ],
             ),

@@ -2,6 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+const Color _lightGoldenRodYellow = Color(0xFFFAFAD2);
+const Color _deepNavy = Color(0xFF132238);
+const Color _softBlue = Color(0xFFDDEAF8);
+
 class Home extends StatefulWidget {
   const Home({super.key});
 
@@ -17,7 +21,7 @@ class _HomeState extends State<Home> {
     super.initState();
     _redirectTimer = Timer(const Duration(milliseconds: 200), () {
       if (mounted) {
-        Navigator.pushReplacementNamed(context, '/connect');
+        Navigator.pushReplacementNamed(context, '/dashboard');
       }
     });
   }
@@ -31,10 +35,9 @@ class _HomeState extends State<Home> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
       body: Container(
         width: double.infinity,
-        decoration: const BoxDecoration(color:Color(0xFFFFF3E0),),
+        decoration: const BoxDecoration(color: _lightGoldenRodYellow),
 
         child: SafeArea(
           child: Padding(
@@ -45,8 +48,8 @@ class _HomeState extends State<Home> {
                 Container(
                   padding: const EdgeInsets.all(22),
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(color: Colors.white),
+                    color: Colors.black,
+                    border: Border.all(color: _softBlue, width: 4),
                   ),
                   child: Image.asset(
                     'assets/images/logo (2).png',
@@ -57,7 +60,7 @@ class _HomeState extends State<Home> {
                       return const Icon(
                         Icons.home_work_outlined,
                         size: 48,
-                        color: Color(0xFF132238),
+                        color: _deepNavy,
                       );
                     },
                   ),
@@ -67,7 +70,7 @@ class _HomeState extends State<Home> {
                   'Gestion locative',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: Colors.white,
+                    color: _deepNavy,
                     fontSize: 32,
                     fontWeight: FontWeight.w800,
                   ),
@@ -76,11 +79,7 @@ class _HomeState extends State<Home> {
                 const Text(
                   'Bienvenu sur votre application de gestion de biens immobiliers',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Color(0xFFDDEAF8),
-                    fontSize: 15,
-                    height: 1.5,
-                  ),
+                  style: TextStyle(color: _deepNavy, fontSize: 15, height: 1.5),
                 ),
                 const SizedBox(height: 28),
                 const SizedBox(height: 8),

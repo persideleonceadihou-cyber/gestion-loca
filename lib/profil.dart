@@ -1,8 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:gestion_locative/Dashboard.dart';
-import 'package:gestion_locative/conect.dart';
 import 'package:gestion_locative/document.dart';
 import 'package:gestion_locative/paiement.dart';
 
@@ -10,24 +7,20 @@ class Profil extends StatelessWidget {
   const Profil({super.key});
 
   static Future<void> _signOut(BuildContext context) async {
-    await FirebaseAuth.instance.signOut();
-    if (!context.mounted) return;
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (_) => const Connect()),
+      MaterialPageRoute(builder: (_) => const Dashboard()),
       (route) => false,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final connectedUser = FirebaseAuth.instance.currentUser;
-    final userStream = connectedUser == null
-        ? null
-        : FirebaseFirestore.instance
-              .collection('users')
-              .doc(connectedUser.uid)
-              .snapshots();
+    const profile = _UserProfile(
+      name: 'Utilisateur local',
+      email: 'local@gestion.app',
+      phone: '+229 90 00 00 00',
+    );
 
     return Scaffold(
       backgroundColor: const Color(0xFFFFF3E0),
@@ -48,32 +41,20 @@ class Profil extends StatelessWidget {
         ],
       ),
       body: SafeArea(
-        child: userStream == null
-            ? const Center(child: Text('Aucun utilisateur connecte.'))
-            : StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-                stream: userStream,
-                builder: (context, snapshot) {
-                  final profile = _UserProfile.fromFirebase(
-                    connectedUser!,
-                    snapshot.data?.data(),
-                  );
-
-                  return SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                    child: Column(
-                      children: [
-                        _ProfileHeaderCard(profile: profile),
-                        const SizedBox(height: 18),
-                        const _ProfileStatsRow(),
-                        const SizedBox(height: 18),
-                        _ProfileInfoCard(profile: profile),
-                        const SizedBox(height: 18),
-                        const _ProfileActionsCard(),
-                      ],
-                    ),
-                  );
-                },
-              ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          child: Column(
+            children: [
+              _ProfileHeaderCard(profile: profile),
+              const SizedBox(height: 18),
+              const _ProfileStatsRow(),
+              const SizedBox(height: 18),
+              _ProfileInfoCard(profile: profile),
+              const SizedBox(height: 18),
+              const _ProfileActionsCard(),
+            ],
+          ),
+        ),
       ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
@@ -123,30 +104,6 @@ class _UserProfile {
     required this.email,
     required this.phone,
   });
-
-  factory _UserProfile.fromFirebase(User user, Map<String, dynamic>? data) {
-    final name = _readProfileValue(data, 'name');
-    final email = _readProfileValue(data, 'email');
-    final phone = _readProfileValue(data, 'phone');
-
-    return _UserProfile(
-      name: name.isNotEmpty
-          ? name
-          : (user.displayName?.trim().isNotEmpty == true
-                ? user.displayName!.trim()
-                : 'Utilisateur'),
-      email: email.isNotEmpty ? email : (user.email ?? 'Email non renseigne'),
-      phone: phone.isNotEmpty ? phone : 'Telephone non renseigne',
-    );
-  }
-}
-
-String _readProfileValue(Map<String, dynamic>? data, String key) {
-  final value = data?[key];
-  if (value is String) {
-    return value.trim();
-  }
-  return '';
 }
 
 class _ProfileHeaderCard extends StatelessWidget {
