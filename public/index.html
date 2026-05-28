@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Paiement Loyer</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #FFF3E0; padding: 20px; }
+    .hidden { display: none; }
+    .card { border: 1px solid #ccc; padding: 15px; border-radius: 8px; margin-top: 20px; }
+    button { padding: 10px 20px; margin: 10px; border: none; border-radius: 5px; cursor: pointer; }
+    .bank { background: red; color: white; }
+    .momo { background: yellow; }
+    .moov { background: blue; color: white; }
+    .celtis { background: green; color: white; }
+  </style>
+</head>
+<body>
+  <h2>Lien de Paiement</h2>
+  <button id="validerBtn">Valider</button>
+
+  <div id="formSection" class="hidden">
+    <label>Numéro de chambre :</label>
+    <input type="text" id="roomInput" placeholder="Ex: A12">
+    <button onclick="fetchRoom()">Rechercher</button>
+  </div>
+
+  <div id="resultSection" class="hidden card"></div>
+
+  <script>
+    const validerBtn = document.getElementById('validerBtn');
+    const formSection = document.getElementById('formSection');
+    const resultSection = document.getElementById('resultSection');
+
+    validerBtn.addEventListener('click', () => {
+      formSection.classList.remove('hidden');
+    });
+
+    function fetchRoom() {
+      const room = document.getElementById('roomInput').value.trim().toUpperCase();
+      if (!room) {
+        alert("Entrez un numéro de chambre");
+        return;
+      }
+
+      // Exemple de données locales (à remplacer par Firebase ou API)
+      const locataires = {
+        "A12": { nom: "Jean Dupont", loyer: 50000, statut: "En attente" },
+        "B07": { nom: "Sophie Arnaud", loyer: 70000, statut: "Payé" }
+      };
+
+      const data = locataires[room];
+      if (!data) {
+        resultSection.innerHTML = "<p style='color:red'>Aucun locataire trouvé pour la chambre " + room + "</p>";
+      } else {
+        resultSection.classList.remove('hidden');
+        resultSection.innerHTML = `
+          <h3>Occupant: ${data.nom}</h3>
+          <p>Loyer: ${data.loyer} FCFA</p>
+          <p>Statut: ${data.statut}</p>
+          <button class="momo" onclick="pay('MTN Momo')">MTN Momo</button>
+          <button class="moov" onclick="pay('Moov Money')">Moov Money</button>
+          <button class="celtis" onclick="pay('Celtis cash')">Celtis</button>
+          <button class="bank" onclick="pay('Banque')">Banque</button>
+        `;
+      }
+    }
+
+    function pay(provider) {
+      alert("Paiement lancé via " + provider);
+      // Ici tu peux rediriger vers une API réelle
+    }
+  </script>
+</body>
+</html>

@@ -3,6 +3,80 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:gestion_locative/ajout.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+Future<void> addLocataire(
+  String nom,
+  String email,
+  String numero_de_chambre,
+  String montant_du_loyer,
+  String telephone,
+  String bien,
+) async {
+  final uid = FirebaseAuth.instance.currentUser!.uid;
+
+  await FirebaseFirestore.instance
+      .collection('users')
+      .doc(uid)
+      .collection('locataires')
+      .add({
+        'nom': nom,
+        'email': email,
+        'chambre': numero_de_chambre,
+        'loyer': montant_du_loyer,
+        'telephone': telephone,
+        'bien': bien,
+        'createdAt': DateTime.now(),
+      });
+}
+
+Stream<List<Map<String, dynamic>>> getLocataires() {
+  final uid = FirebaseAuth.instance.currentUser!.uid;
+
+  return FirebaseFirestore.instance
+      .collection('users')
+      .doc(uid)
+      .collection('locataires')
+      .snapshots()
+      .map(
+        (snapshot) =>
+            snapshot.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList(),
+      );
+}
+
+Future<void> updateLocataire(String id, String nom) async {
+  final uid = FirebaseAuth.instance.currentUser!.uid;
+
+  await FirebaseFirestore.instance
+      .collection('users')
+      .doc(uid)
+      .collection('locataires')
+      .doc(id)
+      .update({'nom': nom});
+}
+
+Future<void> deleteLocataire(String id) async {
+  final uid = FirebaseAuth.instance.currentUser!.uid;
+
+  await FirebaseFirestore.instance
+      .collection('users')
+      .doc(uid)
+      .collection('locataires')
+      .doc(id)
+      .delete();
+}
+
+Future<void> addDocument(String locataireId, String titre) async {
+  final uid = FirebaseAuth.instance.currentUser!.uid;
+  await FirebaseFirestore.instance
+      .collection('users')
+      .doc(uid)
+      .collection('locataires')
+      .doc(locataireId)
+      .collection('documents')
+      .add({'titre': titre, 'date_creation': DateTime.now()});
+}
 
 class TenantDocument {
   final String title;
@@ -197,7 +271,9 @@ Color _statusColorFor(String status) {
   }
 }
 
-const List<TenantRecord> _localPreviewTenants = [
+const String tenantsLocalCacheKey = 'tenants_local';
+
+const List<TenantRecord> localPreviewTenants = [
   TenantRecord(
     id: 'preview_1',
     name: 'Afi Mensah',
@@ -293,7 +369,6 @@ class Locataire extends StatefulWidget {
 
 class _LocataireState extends State<Locataire> {
   List<TenantRecord> _cachedTenants = [];
-  static const String _localCacheKey = 'tenants_local';
 
   @override
   void initState() {
@@ -303,7 +378,8 @@ class _LocataireState extends State<Locataire> {
 
   Future<void> _loadCachedTenants() async {
     final preferences = await SharedPreferences.getInstance();
-    final encodedTenants = preferences.getStringList(_localCacheKey) ?? [];
+    final encodedTenants =
+        preferences.getStringList(tenantsLocalCacheKey) ?? [];
     final tenants = <TenantRecord>[];
 
     for (final encodedTenant in encodedTenants) {
@@ -329,7 +405,7 @@ class _LocataireState extends State<Locataire> {
   Future<void> _saveCachedTenants(List<TenantRecord> tenants) async {
     final preferences = await SharedPreferences.getInstance();
     await preferences.setStringList(
-      _localCacheKey,
+      tenantsLocalCacheKey,
       tenants.map((tenant) => jsonEncode(tenant.toMap())).toList(),
     );
   }
@@ -361,7 +437,7 @@ class _LocataireState extends State<Locataire> {
 
   List<TenantRecord> get _displayTenants {
     if (_cachedTenants.isEmpty) {
-      return _localPreviewTenants;
+      return localPreviewTenants;
     }
     return _cachedTenants;
   }

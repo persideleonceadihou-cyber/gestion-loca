@@ -1,10 +1,4 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-
-const Color _lightGoldenRodYellow = Color(0xFFFAFAD2);
-const Color _deepNavy = Color(0xFF132238);
-const Color _softBlue = Color(0xFFDDEAF8);
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -13,76 +7,76 @@ class Home extends StatefulWidget {
   State<Home> createState() => _HomeState();
 }
 
-class _HomeState extends State<Home> {
-  Timer? _redirectTimer;
+class _HomeState extends State<Home> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
-    _redirectTimer = Timer(const Duration(milliseconds: 200), () {
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/dashboard');
-      }
+
+    _controller = AnimationController(
+      duration: const Duration(seconds: 3),
+      vsync: this,
+    );
+
+    _scaleAnimation = Tween<double>(
+      begin: 0.5,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
+
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeIn));
+
+    _controller.forward();
+
+    // Après 4 secondes, aller vers le Dashboard
+    Future.delayed(const Duration(seconds: 5), () {
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/connect');
     });
   }
 
   @override
   void dispose() {
-    _redirectTimer?.cancel();
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        decoration: const BoxDecoration(color: _lightGoldenRodYellow),
-
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
+      backgroundColor: Color(0xFFFFF3E0),
+      body: Center(
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: ScaleTransition(
+            scale: _scaleAnimation,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(22),
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    border: Border.all(color: _softBlue, width: 4),
-                  ),
-                  child: Image.asset(
-                    'assets/images/logo (2).png',
-                    width: 64,
-                    height: 64,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Icon(
-                        Icons.home_work_outlined,
-                        size: 48,
-                        color: _deepNavy,
-                      );
-                    },
-                  ),
+                Image.asset(
+                  'assets/images/logo (2).png',
+                  width: 150,
+                  height: 150,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
                 const Text(
-                  'Gestion locative',
-                  textAlign: TextAlign.center,
+                  "Bienvenue dans Gestion Locative",
                   style: TextStyle(
-                    color: _deepNavy,
-                    fontSize: 32,
-                    fontWeight: FontWeight.w800,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blueGrey,
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 const Text(
-                  'Bienvenu sur votre application de gestion de biens immobiliers',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: _deepNavy, fontSize: 15, height: 1.5),
+                  "Chargement de votre espace...",
+                  style: TextStyle(fontSize: 16, color: Colors.black54),
                 ),
-                const SizedBox(height: 28),
-                const SizedBox(height: 8),
               ],
             ),
           ),

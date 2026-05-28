@@ -1,13 +1,22 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:gestion_locative/ajoutMaison.dart';
 import 'package:gestion_locative/document.dart';
 import 'package:gestion_locative/paiement.dart';
 import 'package:gestion_locative/profil.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:gestion_locative/locataire.dart';
 
 class Dashboard extends StatefulWidget {
   final int initialIndex;
+  final String userName;
 
-  const Dashboard({super.key, this.initialIndex = 0});
+  const Dashboard({
+    super.key,
+    this.initialIndex = 0,
+    this.userName = 'Utilisateur local',
+  });
 
   @override
   State<Dashboard> createState() => _DashboardState();
@@ -15,6 +24,8 @@ class Dashboard extends StatefulWidget {
 
 class _DashboardState extends State<Dashboard> {
   late int _selectedIndex;
+  Uint8List? _profileImageBytes;
+  final ImagePicker _imagePicker = ImagePicker();
 
   static const List<int> _rentAmounts = [50000, 150000, 100000, 70000];
 
@@ -41,6 +52,23 @@ class _DashboardState extends State<Dashboard> {
     _selectedIndex = widget.initialIndex.clamp(0, 1);
   }
 
+  Future<void> _pickProfileImage(ImageSource source) async {
+    final image = await _imagePicker.pickImage(
+      source: source,
+      imageQuality: 70,
+      maxWidth: 600,
+    );
+
+    if (image == null) return;
+
+    final bytes = await image.readAsBytes();
+    if (!mounted) return;
+
+    setState(() {
+      _profileImageBytes = bytes;
+    });
+  }
+
   void _showImageOptions(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -55,7 +83,7 @@ class _DashboardState extends State<Dashboard> {
             children: [
               ListTile(
                 leading: const Icon(Icons.camera_alt),
-                title: const Text('Scanner une image'),
+                title: const Text('ajouter une image'),
                 onTap: () {
                   Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -84,10 +112,45 @@ class _DashboardState extends State<Dashboard> {
     );
   }
 
+  void _showProfileImageOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Prendre une photo'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _pickProfileImage(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Ajouter depuis la galerie'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _pickProfileImage(ImageSource.gallery);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final displayedIndex = _selectedIndex == 0 ? 0 : 3;
-    const userName = 'Utilisateur local';
+    final userName = widget.userName;
 
     return Scaffold(
       appBar: AppBar(
@@ -95,30 +158,45 @@ class _DashboardState extends State<Dashboard> {
         title: _selectedIndex == 0
             ? Row(
                 children: [
-                  const CircleAvatar(
-                    radius: 20,
-                    child: Icon(Icons.person, color: Colors.white),
-                    backgroundColor: Colors.blue,
+                  GestureDetector(
+                    onTap: () => _showProfileImageOptions(context),
+                    child: CircleAvatar(
+                      radius: 20,
+                      backgroundColor: Colors.blue,
+                      backgroundImage: _profileImageBytes == null
+                          ? null
+                          : MemoryImage(_profileImageBytes!),
+                      child: _profileImageBytes == null
+                          ? const Icon(Icons.person, color: Colors.white)
+                          : null,
+                    ),
                   ),
                   const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Gestion locative",
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          "Gestion locative",
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      Text(
-                        userName,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
+                        Text(
+                          userName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               )
@@ -270,6 +348,7 @@ class _DashboardHomePage extends StatelessWidget {
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
+          // Statistiques en haut
           Row(
             children: [
               Expanded(
@@ -291,6 +370,7 @@ class _DashboardHomePage extends StatelessWidget {
           const SizedBox(height: 32),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
+            // Boutton filters
             child: Row(
               children: [
                 _buildFilterButton(
@@ -308,6 +388,45 @@ class _DashboardHomePage extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(height: 32),
+          // Liste des locataires en temps réel ---
+          StreamBuilder<List<Map<String, dynamic>>>(
+            stream: getLocataires(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const CircularProgressIndicator();
+              }
+              if (snapshot.hasError) {
+                return const Text("Erreur de chargement");
+              }
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const Text("Aucun locataire trouvé");
+              }
+
+              final locataires = snapshot.data!;
+              return ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: locataires.length,
+                itemBuilder: (context, index) {
+                  final locataire = locataires[index];
+                  return Card(
+                    child: ListTile(
+                      title: Text(locataire['nom']),
+                      subtitle: Text(
+                        "Chambre: ${locataire['chambre']} • Loyer: ${locataire['loyer']}",
+                      ),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => deleteLocataire(locataire['id']),
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+
           const SizedBox(height: 32),
           GridView.count(
             shrinkWrap: true,

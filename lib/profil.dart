@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gestion_locative/Dashboard.dart';
 import 'package:gestion_locative/document.dart';
 import 'package:gestion_locative/paiement.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class Profil extends StatelessWidget {
   const Profil({super.key});
@@ -16,10 +17,13 @@ class Profil extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const profile = _UserProfile(
-      name: 'Utilisateur local',
-      email: 'local@gestion.app',
-      phone: '+229 90 00 00 00',
+    final user = FirebaseAuth.instance.currentUser;
+    final profile = _UserProfile(
+      name: user?.displayName?.trim().isNotEmpty == true
+          ? user!.displayName!.trim()
+          : 'Utilisateur local',
+      email: user?.email ?? 'local@gestion.app',
+      phone: user?.phoneNumber ?? '+229 90 00 00 00',
     );
 
     return Scaffold(

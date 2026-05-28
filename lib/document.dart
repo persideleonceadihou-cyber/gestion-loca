@@ -1,13 +1,85 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:gestion_locative/Dashboard.dart';
+import 'package:gestion_locative/locataire.dart';
 import 'package:gestion_locative/paiement.dart';
 import 'package:gestion_locative/profil.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class Document extends StatelessWidget {
+class Document extends StatefulWidget {
   const Document({super.key});
 
   @override
+  State<Document> createState() => _DocumentState();
+}
+
+class _DocumentState extends State<Document> {
+  List<TenantRecord> _tenants = localPreviewTenants;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTenantDocuments();
+  }
+
+  Future<void> _loadTenantDocuments() async {
+    final preferences = await SharedPreferences.getInstance();
+    final encodedTenants =
+        preferences.getStringList(tenantsLocalCacheKey) ?? [];
+    final tenants = <TenantRecord>[];
+
+    for (final encodedTenant in encodedTenants) {
+      try {
+        final decoded = jsonDecode(encodedTenant);
+        if (decoded is Map<String, dynamic>) {
+          tenants.add(TenantRecord.fromMap(decoded));
+        }
+      } catch (error) {
+        debugPrint('Erreur lecture documents locataires: $error');
+      }
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _tenants = tenants.isEmpty ? localPreviewTenants : tenants;
+    });
+  }
+
+  List<DocumentEntry> get _contractDocuments {
+    return _tenants.map((tenant) {
+      return DocumentEntry(
+        title: tenant.contract.title,
+        subtitle: '${tenant.name} - ${tenant.propertyName}',
+        date: tenant.contract.dateLabel,
+        state: tenant.contract.state,
+        icon: Icons.description_outlined,
+        tint: const Color(0xFFE8F1FF),
+      );
+    }).toList();
+  }
+
+  List<DocumentEntry> get _inventoryDocuments {
+    return _tenants.map((tenant) {
+      return DocumentEntry(
+        title: tenant.inventory.title,
+        subtitle: '${tenant.name} - Chambre ${tenant.roomNumber}',
+        date: tenant.inventory.dateLabel,
+        state: tenant.inventory.state,
+        icon: Icons.home_work_outlined,
+        tint: const Color(0xFFFFF5E6),
+      );
+    }).toList();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final contractDocuments = _contractDocuments;
+    final inventoryDocuments = _inventoryDocuments;
+
     return Scaffold(
       backgroundColor: const Color(0xFFFFF3E0),
       appBar: AppBar(
@@ -30,76 +102,29 @@ class Document extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              _DocumentHero(),
-              SizedBox(height: 18),
-              _DocumentOverviewRow(),
-              SizedBox(height: 18),
+            children: [
+              const _DocumentHero(),
+              const SizedBox(height: 18),
+              _DocumentOverviewRow(
+                contractCount: contractDocuments.length,
+                inventoryCount: inventoryDocuments.length,
+              ),
+              const SizedBox(height: 18),
               _DocumentSection(
                 title: 'Contrats',
                 subtitle: 'Baux actifs, renouvellements et signatures a suivre',
-                accentColor: Color(0xFF2B7FFF),
-                items: [
-                  DocumentEntry(
-                    title: 'Contrat Appartement A12',
-                    subtitle: 'Sophie Arnaud • Residence Les Palmiers',
-                    date: 'Renouvelle le 18 avril 2026',
-                    state: 'Actif',
-                    icon: Icons.description_outlined,
-                    tint: Color(0xFFE8F1FF),
-                  ),
-                  DocumentEntry(
-                    title: 'Contrat Villa Calavi',
-                    subtitle: 'Aicha Bello • Villa Calavi',
-                    date: 'A verifier avant le 21 juin 2026',
-                    state: 'Attention',
-                    icon: Icons.assignment_outlined,
-                    tint: Color(0xFFFFF1E4),
-                  ),
-                  DocumentEntry(
-                    title: 'Contrat Chambre D15',
-                    subtitle: 'Jean Kossi • Chambres Porto-Novo',
-                    date: 'Signe le 08 fevrier 2026',
-                    state: 'Recent',
-                    icon: Icons.fact_check_outlined,
-                    tint: Color(0xFFEAF7EF),
-                  ),
-                ],
+                accentColor: const Color(0xFF2B7FFF),
+                items: contractDocuments,
               ),
-              SizedBox(height: 18),
+              const SizedBox(height: 18),
               _DocumentSection(
                 title: 'Etats des lieux',
                 subtitle: 'Entrees, sorties et controles de chambres',
-                accentColor: Color(0xFFF39C12),
-                items: [
-                  DocumentEntry(
-                    title: 'Etat des lieux entree A12',
-                    subtitle: 'Appartement A12 • photos archivees',
-                    date: 'Document signe le 12 janvier 2025',
-                    state: 'Archive',
-                    icon: Icons.home_work_outlined,
-                    tint: Color(0xFFFFF5E6),
-                  ),
-                  DocumentEntry(
-                    title: 'Etat des lieux numerique B07',
-                    subtitle: 'Studio Fidjrosse • controle termine',
-                    date: 'Verifie le 03 septembre 2024',
-                    state: 'Complet',
-                    icon: Icons.inventory_2_outlined,
-                    tint: Color(0xFFEAF4FF),
-                  ),
-                  DocumentEntry(
-                    title: 'Etat des lieux sortie a planifier',
-                    subtitle: 'Villa Calavi • visite recommandee',
-                    date: 'Controle prevu le 30 avril 2026',
-                    state: 'Suivi requis',
-                    icon: Icons.rule_folder_outlined,
-                    tint: Color(0xFFFFECEC),
-                  ),
-                ],
+                accentColor: const Color(0xFFF39C12),
+                items: inventoryDocuments,
               ),
-              SizedBox(height: 18),
-              _UploadPanel(),
+              const SizedBox(height: 18),
+              const _UploadPanel(),
             ],
           ),
         ),
@@ -203,31 +228,37 @@ class _DocumentHero extends StatelessWidget {
 }
 
 class _DocumentOverviewRow extends StatelessWidget {
-  const _DocumentOverviewRow();
+  final int contractCount;
+  final int inventoryCount;
+
+  const _DocumentOverviewRow({
+    required this.contractCount,
+    required this.inventoryCount,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    return Row(
       children: [
         Expanded(
           child: _MiniInfoCard(
             title: 'Contrats',
-            value: '12',
-            subtitle: '8 actifs',
+            value: '$contractCount',
+            subtitle: '$contractCount locataires',
             icon: Icons.description_outlined,
-            color: Color(0xFFE8F1FF),
-            iconColor: Color(0xFF2B7FFF),
+            color: const Color(0xFFE8F1FF),
+            iconColor: const Color(0xFF2B7FFF),
           ),
         ),
-        SizedBox(width: 12),
+        const SizedBox(width: 12),
         Expanded(
           child: _MiniInfoCard(
             title: 'Etats des lieux',
-            value: '9',
-            subtitle: '2 a suivre',
+            value: '$inventoryCount',
+            subtitle: '$inventoryCount locataires',
             icon: Icons.home_work_outlined,
-            color: Color(0xFFFFF5E6),
-            iconColor: Color(0xFFF39C12),
+            color: const Color(0xFFFFF5E6),
+            iconColor: const Color(0xFFF39C12),
           ),
         ),
       ],
@@ -338,7 +369,7 @@ class _DocumentSection extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: accentColor,
+                  color: accentColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(Icons.folder_copy_outlined, color: accentColor),
@@ -464,11 +495,7 @@ class _UploadPanelState extends State<_UploadPanel> {
   Future<void> openScan() async {
     final label = await Navigator.of(context).pushNamed<String>('/scan');
 
-    if (label == null) {
-      return;
-    }
-
-    if (!mounted) {
+    if (label == null || !mounted) {
       return;
     }
 
@@ -522,7 +549,6 @@ class _UploadPanelState extends State<_UploadPanel> {
                 ),
                 child: const Text('Scanner'),
               ),
-
               OutlinedButton.icon(
                 onPressed: () {},
                 style: OutlinedButton.styleFrom(

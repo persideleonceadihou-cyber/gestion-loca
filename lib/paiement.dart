@@ -1,7 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:gestion_locative/Dashboard.dart';
 import 'package:gestion_locative/document.dart';
+import 'package:gestion_locative/locataire.dart';
 import 'package:gestion_locative/profil.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Paiement extends StatefulWidget {
   const Paiement({super.key});
@@ -12,57 +16,41 @@ class Paiement extends StatefulWidget {
 
 class _PaiementState extends State<Paiement> {
   String _selectedFilter = 'Tous les flux';
+  List<PaymentRecord> _payments = [];
 
-  final List<PaymentRecord> _payments = [
-    PaymentRecord(
-      tenantName: 'Sophie Arnaud',
-      propertyName: 'Appartement Cotonou - A12',
-      amount: '75 000 FCFA',
-      dueDate: 'Echeance: 05 Avril 2026',
-      status: 'Paye',
-      statusColor: Colors.green,
-    ),
-    PaymentRecord(
-      tenantName: 'Marc Leroy',
-      propertyName: 'Studio Fidjrosse',
-      amount: '60 000 FCFA',
-      dueDate: 'Echeance: 10 Avril 2026',
-      status: 'En attente',
-      statusColor: Colors.orange,
-    ),
-    PaymentRecord(
-      tenantName: 'Aicha Bello',
-      propertyName: 'Villa Calavi',
-      amount: '120 000 FCFA',
-      dueDate: 'Echeance: 02 Avril 2026',
-      status: 'En retard',
-      statusColor: Colors.red,
-    ),
-    PaymentRecord(
-      tenantName: 'Jean Kossi',
-      propertyName: 'Chambre Porto-Novo',
-      amount: '35 000 FCFA',
-      dueDate: 'Echeance: 12 Avril 2026',
-      status: 'Paye',
-      statusColor: Colors.green,
-    ),
-    PaymentRecord(
-      tenantName: 'Clarisse Dossou',
-      propertyName: 'Residence Ganhi',
-      amount: '85 000 FCFA',
-      dueDate: 'Echeance: 15 Avril 2026',
-      status: 'Paye',
-      statusColor: Colors.green,
-    ),
-    PaymentRecord(
-      tenantName: 'Ibrahim Lawani',
-      propertyName: 'Cite Universitaire Akpakpa',
-      amount: '45 000 FCFA',
-      dueDate: 'Echeance: 28 Avril 2026',
-      status: 'En attente',
-      statusColor: Colors.orange,
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadTenantPayments();
+  }
+
+  Future<void> _loadTenantPayments() async {
+    final preferences = await SharedPreferences.getInstance();
+    final encodedTenants =
+        preferences.getStringList(tenantsLocalCacheKey) ?? [];
+    final tenants = <TenantRecord>[];
+
+    for (final encodedTenant in encodedTenants) {
+      try {
+        final decoded = jsonDecode(encodedTenant);
+        if (decoded is Map<String, dynamic>) {
+          tenants.add(TenantRecord.fromMap(decoded));
+        }
+      } catch (error) {
+        debugPrint('Erreur lecture paiements locataires: $error');
+      }
+    }
+
+    final tenantsToDisplay = tenants.isEmpty ? localPreviewTenants : tenants;
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _payments = tenantsToDisplay.map(PaymentRecord.fromTenant).toList();
+    });
+  }
 
   void _markPaymentAsPaid(PaymentRecord payment) {
     final paymentIndex = _payments.indexOf(payment);
@@ -93,10 +81,7 @@ class _PaiementState extends State<Paiement> {
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
         actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.notifications),
-          ),
+          IconButton(onPressed: () {}, icon: const Icon(Icons.notifications)),
         ],
       ),
       body: _PaymentsContent(
@@ -164,6 +149,19 @@ class PaymentRecord {
     required this.statusColor,
   });
 
+  factory PaymentRecord.fromTenant(TenantRecord tenant) {
+    final status = _paymentStatusForTenantStatus(tenant.statusLabel);
+
+    return PaymentRecord(
+      tenantName: tenant.name,
+      propertyName: '${tenant.propertyName} - Chambre ${tenant.roomNumber}',
+      amount: tenant.rentAmount,
+      dueDate: tenant.paymentSummary,
+      status: status,
+      statusColor: _paymentStatusColor(status),
+    );
+  }
+
   PaymentRecord copyWith({
     String? tenantName,
     String? propertyName,
@@ -180,6 +178,28 @@ class PaymentRecord {
       status: status ?? this.status,
       statusColor: statusColor ?? this.statusColor,
     );
+  }
+}
+
+String _paymentStatusForTenantStatus(String status) {
+  switch (status) {
+    case 'Retard':
+      return 'En retard';
+    case 'Paiement attendu':
+      return 'En attente';
+    default:
+      return 'Paye';
+  }
+}
+
+Color _paymentStatusColor(String status) {
+  switch (status) {
+    case 'En retard':
+      return Colors.red;
+    case 'En attente':
+      return Colors.orange;
+    default:
+      return Colors.green;
   }
 }
 
@@ -205,131 +225,135 @@ class _PaymentsContent extends StatelessWidget {
       return payment.status == selectedFilter;
     }).toList();
 
-    final paidPayments =
-        payments.where((payment) => payment.status == 'Paye').toList();
-    final pendingPayments =
-        payments.where((payment) => payment.status == 'En attente').toList();
-    final latePayments =
-        payments.where((payment) => payment.status == 'En retard').toList();
+    final paidPayments = payments
+        .where((payment) => payment.status == 'Paye')
+        .toList();
+    final pendingPayments = payments
+        .where((payment) => payment.status == 'En attente')
+        .toList();
+    final latePayments = payments
+        .where((payment) => payment.status == 'En retard')
+        .toList();
     final paidTotal = _sumPayments(paidPayments);
     final pendingTotal = _sumPayments(pendingPayments);
     final lateTotal = _sumPayments(latePayments);
 
     return ListView(
       padding: const EdgeInsets.all(16.0),
-       shrinkWrap: true,
+      shrinkWrap: true,
       children: [
         const Text(
-            'Suivi des paiements',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            selectedFilter == 'Tous les flux'
-                ? 'Consultez rapidement les loyers payes, en attente et en retard.'
-                : 'Affichage des loyers filtres sur: $selectedFilter.',
-            style: const TextStyle(fontSize: 15, color: Colors.grey),
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            height: 200,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: [
-                _PaymentSummaryCard(
-                  title: 'Montant loyer paye',
-                  amount: '${_formatPaymentAmount(paidTotal)} FCFA',
-                  subtitle: '${paidPayments.length} paiements valides',
-                  color: const Color(0xFFE8F5E9),
-                  accentColor: Colors.green,
-                  icon: Icons.check_circle,
-                ),
-                _PaymentSummaryCard(
-                  title: 'En attente',
-                  amount: '${_formatPaymentAmount(pendingTotal)} FCFA',
-                  subtitle: '${pendingPayments.length} paiements a confirmer',
-                  color: const Color(0xFFFFF8E1),
-                  accentColor: Colors.orange,
-                  icon: Icons.schedule,
-                ),
-                _PaymentSummaryCard(
-                  title: 'En retard',
-                  amount: '${_formatPaymentAmount(lateTotal)} FCFA',
-                  subtitle: '${latePayments.length} loyers non regles',
-                  color: const Color(0xFFFFEBEE),
-                  accentColor: Colors.red,
-                  icon: Icons.warning_rounded,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 28),
-
-          const Text(
-            'Filtrer les flux',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
+          'Suivi des paiements',
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          selectedFilter == 'Tous les flux'
+              ? 'Consultez rapidement les loyers payes, en attente et en retard.'
+              : 'Affichage des loyers filtres sur: $selectedFilter.',
+          style: const TextStyle(fontSize: 15, color: Colors.grey),
+        ),
+        const SizedBox(height: 24),
+        SizedBox(
+          height: 200,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
             children: [
-              _PaymentFilterChip(
-                label: 'Tous les flux',
-                isSelected: selectedFilter == 'Tous les flux',
-                onTap: () => onFilterSelected('Tous les flux'),
+              _PaymentSummaryCard(
+                title: 'Montant loyer paye',
+                amount: '${_formatPaymentAmount(paidTotal)} FCFA',
+                subtitle: '${paidPayments.length} paiements valides',
+                color: const Color(0xFFE8F5E9),
+                accentColor: Colors.green,
+                icon: Icons.check_circle,
               ),
-              _PaymentFilterChip(
-                label: 'En attente',
-                isSelected: selectedFilter == 'En attente',
-                onTap: () => onFilterSelected('En attente'),
+              _PaymentSummaryCard(
+                title: 'En attente',
+                amount: '${_formatPaymentAmount(pendingTotal)} FCFA',
+                subtitle: '${pendingPayments.length} paiements a confirmer',
+                color: const Color(0xFFFFF8E1),
+                accentColor: Colors.orange,
+                icon: Icons.schedule,
               ),
-              _PaymentFilterChip(
-                label: 'Paye',
-                isSelected: selectedFilter == 'Paye',
-                onTap: () => onFilterSelected('Paye'),
-              ),
-              _PaymentFilterChip(
-                label: 'En retard',
-                isSelected: selectedFilter == 'En retard',
-                onTap: () => onFilterSelected('En retard'),
+              _PaymentSummaryCard(
+                title: 'En retard',
+                amount: '${_formatPaymentAmount(lateTotal)} FCFA',
+                subtitle: '${latePayments.length} loyers non regles',
+                color: const Color(0xFFFFEBEE),
+                accentColor: Colors.red,
+                icon: Icons.warning_rounded,
               ),
             ],
           ),
-          const SizedBox(height: 28),
-          Text(
-            'Paiements recents (${filteredPayments.length})',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 12),
-          if (filteredPayments.isEmpty)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: const Text(
-                'Aucun paiement ne correspond a ce filtre.',
-                style: TextStyle(color: Colors.black54),
-              ),
-            )
-          else
-            ...filteredPayments.map(
-              (payment) => _PaymentTile(
-                tenantName: payment.tenantName,
-                propertyName: payment.propertyName,
-                amount: payment.amount,
-                dueDate: payment.dueDate,
-                status: payment.status,
-                statusColor: payment.statusColor,
-                onMarkAsPaid: null,
-              ),
+        ),
+        const SizedBox(height: 28),
+
+        const Text(
+          'Filtrer les flux',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            _PaymentFilterChip(
+              label: 'Tous les flux',
+              isSelected: selectedFilter == 'Tous les flux',
+              onTap: () => onFilterSelected('Tous les flux'),
             ),
-        ],
-      );
-    
+            _PaymentFilterChip(
+              label: 'En attente',
+              isSelected: selectedFilter == 'En attente',
+              onTap: () => onFilterSelected('En attente'),
+            ),
+            _PaymentFilterChip(
+              label: 'Paye',
+              isSelected: selectedFilter == 'Paye',
+              onTap: () => onFilterSelected('Paye'),
+            ),
+            _PaymentFilterChip(
+              label: 'En retard',
+              isSelected: selectedFilter == 'En retard',
+              onTap: () => onFilterSelected('En retard'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 28),
+        Text(
+          'Paiements recents (${filteredPayments.length})',
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 12),
+        if (filteredPayments.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: const Text(
+              'Aucun paiement ne correspond a ce filtre.',
+              style: TextStyle(color: Colors.black54),
+            ),
+          )
+        else
+          ...filteredPayments.map(
+            (payment) => _PaymentTile(
+              tenantName: payment.tenantName,
+              propertyName: payment.propertyName,
+              amount: payment.amount,
+              dueDate: payment.dueDate,
+              status: payment.status,
+              statusColor: payment.statusColor,
+              onMarkAsPaid: payment.status == 'Paye'
+                  ? null
+                  : () => onMarkAsPaid(payment),
+            ),
+          ),
+      ],
+    );
   }
 
   int _sumPayments(List<PaymentRecord> records) {
@@ -516,10 +540,7 @@ class _PaymentTile extends StatelessWidget {
                     style: const TextStyle(color: Colors.black54),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    dueDate,
-                    style: const TextStyle(color: Colors.black45),
-                  ),
+                  Text(dueDate, style: const TextStyle(color: Colors.black45)),
                 ],
               ),
             ),
@@ -557,7 +578,7 @@ class _PaymentTile extends StatelessWidget {
                   ElevatedButton.icon(
                     onPressed: onMarkAsPaid,
                     icon: const Icon(Icons.check, size: 16),
-                    label: const Text('  '),  
+                    label: const Text('  '),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                       foregroundColor: Colors.white,
@@ -581,4 +602,3 @@ class _PaymentTile extends StatelessWidget {
     );
   }
 }
-
