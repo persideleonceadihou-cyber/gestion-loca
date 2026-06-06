@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -630,6 +631,7 @@ class TenantDetailScreen extends StatelessWidget {
               _InfoRow(label: 'Loyer', value: tenant.rentAmount),
               _InfoRow(label: 'Telephone', value: tenant.phone),
               _InfoRow(label: 'Email', value: tenant.email),
+              if (tenant.paymentCode.isNotEmpty) _CodeRow(code: tenant.paymentCode),
             ],
           ),
           const SizedBox(height: 12),
@@ -757,6 +759,78 @@ class _DetailSection extends StatelessWidget {
           const SizedBox(height: 10),
           ...children,
         ],
+      ),
+    );
+  }
+}
+
+class _CodeRow extends StatelessWidget {
+  final String code;
+  const _CodeRow({required this.code});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 6, bottom: 4),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A2B5E),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.vpn_key_rounded, color: Colors.white, size: 16),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Code de paiement',
+                  style: TextStyle(color: Color(0xFFABC4E0), fontSize: 10, fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  code,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 6,
+                  ),
+                ),
+              ],
+            ),
+            const Spacer(),
+            GestureDetector(
+              onTap: () {
+                Clipboard.setData(ClipboardData(text: code));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Code $code copié !'),
+                    backgroundColor: const Color(0xFF149954),
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.copy_rounded, color: Colors.white, size: 14),
+                    SizedBox(width: 5),
+                    Text('Copier', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
