@@ -383,43 +383,11 @@ class _LocatairesScreenState extends State<LocatairesScreen> {
     Navigator.pushReplacementNamed(context, routes[index]);
   }
 
+  // ✅ CORRECTION : ajout.dart gère déjà l'enregistrement Firestore
+  // avec le code de paiement. On ne réenregistre plus ici.
   Future<void> _addTenant(BuildContext context) async {
-    final result = await Navigator.pushNamed(context, '/ajoutLocataire');
-    final user = FirebaseAuth.instance.currentUser;
-    if (result is TenantRecord && user != null) {
-      try {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .collection('locataires')
-            .add({...result.toMap(), 'createdAt': FieldValue.serverTimestamp()});
-      } on FirebaseException catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.message ?? 'Enregistrement impossible.'),
-            backgroundColor: const Color(0xFF993C1D),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      } catch (_) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Enregistrement impossible pour le moment.'),
-            backgroundColor: Color(0xFF993C1D),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } else if (result is TenantRecord) {
-      setState(() {
-        _tenants.insert(
-          0,
-          result.copyWith(id: DateTime.now().microsecondsSinceEpoch.toString()),
-        );
-      });
-    }
+    await Navigator.pushNamed(context, '/ajoutLocataire');
+    // Le StreamBuilder met à jour la liste automatiquement via Firestore.
   }
 
   Widget _buildTenantList() {

@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "392404840141",
+    "project_id": "gestion-loca-66598",
+    "storage_bucket": "gestion-loca-66598.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:392404840141:android:d1450f5a61c6f82e6b8384",
+        "android_client_info": {
+          "package_name": "com.example.gestion_locative"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA9YtN1FbsCsCb312LzE4LUr85RvzIQ6cg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:392404840141:android:0a5a57f24d4b7e556b8384",
+        "android_client_info": {
+          "package_name": "gestion.locative"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA9YtN1FbsCsCb312LzE4LUr85RvzIQ6cg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -41,6 +41,7 @@ class _AjoutState extends State<Ajout> {
   String _selectedStatus = 'A jour';
   String? _scannedFolderLabel;
   DateTime? _entryDate;
+  String? _selectedPropertyId;
 
   @override
   void dispose() {
@@ -53,6 +54,15 @@ class _AjoutState extends State<Ajout> {
     _contactController.dispose();
     _notesController.dispose();
     super.dispose();
+  }
+
+  void _applyPropertySelection(_FreePropertyOption property) {
+    setState(() {
+      _selectedPropertyId = property.id;
+      _propertyController.text = property.title;
+      _roomController.text = property.roomNumber;
+      _rentController.text = property.rentAmount;
+    });
   }
 
   Future<void> _submit() async {
@@ -208,6 +218,135 @@ class _AjoutState extends State<Ajout> {
     );
   }
 
+  Widget _buildFreePropertySelector() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF0F4FA),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFDDEAF8)),
+        ),
+        child: const Text(
+          'Connectez-vous pour voir les biens libres.',
+          style: TextStyle(
+            color: Color(0xFF607086),
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
+    }
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('biens')
+          .snapshots(),
+      builder: (context, snapshot) {
+        final properties = snapshot.data?.docs
+                .map(
+                  (doc) => _FreePropertyOption.fromMap(
+                    doc.id,
+                    doc.data() as Map<String, dynamic>,
+                  ),
+                )
+                .where((property) => !property.isRented)
+                .toList() ??
+            <_FreePropertyOption>[];
+
+        final selectedExists = properties.any(
+          (property) => property.id == _selectedPropertyId,
+        );
+        final currentValue = selectedExists ? _selectedPropertyId : null;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Bien libre',
+              style: TextStyle(
+                color: Color(0xFF607086),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              initialValue: currentValue,
+              isExpanded: true,
+              icon: const Icon(Icons.keyboard_arrow_down_rounded),
+              decoration: InputDecoration(
+                hintText: snapshot.connectionState == ConnectionState.waiting
+                    ? 'Chargement des biens libres...'
+                    : 'Selectionner un bien libre',
+                prefixIcon: const Icon(Icons.home_work_outlined),
+                filled: true,
+                fillColor: const Color(0xFFF0F4FA),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 14,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(
+                    color: Color(0xFFDDEAF8),
+                    width: 1.5,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF1F6FEB),
+                    width: 1.8,
+                  ),
+                ),
+              ),
+              items: properties
+                  .map(
+                    (property) => DropdownMenuItem<String>(
+                      value: property.id,
+                      child: Text(
+                        property.dropdownLabel,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  )
+                  .toList(),
+              onChanged: properties.isEmpty
+                  ? null
+                  : (value) {
+                      if (value == null) return;
+                      final selected = properties.firstWhere(
+                        (property) => property.id == value,
+                      );
+                      _applyPropertySelection(selected);
+                    },
+            ),
+            const SizedBox(height: 8),
+            Text(
+              properties.isEmpty
+                  ? 'Aucun bien libre disponible pour le moment.'
+                  : 'Le choix remplit automatiquement le bien, le numero de chambre et le loyer.',
+              style: const TextStyle(
+                color: Color(0xFF7D8CA0),
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -351,12 +490,14 @@ class _AjoutState extends State<Ajout> {
                           validator: _requiredValidator,
                         ),
                         const SizedBox(height: 12),
+                        _buildFreePropertySelector(),
+                        const SizedBox(height: 12),
                         Row(
                           children: [
                             Expanded(
                               child: _Field(
                                 controller: _roomController,
-                                label: 'Chambre',
+                                label: 'Numero de chambre',
                                 icon: Icons.meeting_room_outlined,
                                 validator: _requiredValidator,
                               ),
@@ -920,4 +1061,57 @@ class _StatusOption {
   final Color color;
   final IconData icon;
   const _StatusOption(this.label, this.color, this.icon);
+}
+
+class _FreePropertyOption {
+  final String id;
+  final String title;
+  final String roomNumber;
+  final String rentAmount;
+  final bool isRented;
+
+  const _FreePropertyOption({
+    required this.id,
+    required this.title,
+    required this.roomNumber,
+    required this.rentAmount,
+    required this.isRented,
+  });
+
+  factory _FreePropertyOption.fromMap(String id, Map<String, dynamic> map) {
+    final priceNumber = map['priceNumber'] is num
+        ? (map['priceNumber'] as num).toInt()
+        : _amountFromText(map['price']?.toString() ?? map['rentAmount']?.toString() ?? '');
+    return _FreePropertyOption(
+      id: id,
+      title: map['title']?.toString() ?? map['propertyName']?.toString() ?? 'Bien sans nom',
+      roomNumber: map['roomNumber']?.toString() ??
+          map['rooms']?.toString() ??
+          map['chambre']?.toString() ??
+          '',
+      rentAmount: _formatAmount(priceNumber),
+      isRented: map['isRented'] == true ||
+          (map['status']?.toString() ?? '').toLowerCase().contains('lou'),
+    );
+  }
+
+  String get dropdownLabel {
+    final roomPart = roomNumber.trim().isEmpty ? 'Ch. ?' : 'Ch. $roomNumber';
+    final rentPart = rentAmount.trim().isEmpty ? '0 FCFA' : '$rentAmount FCFA';
+    return '$title - $roomPart - $rentPart';
+  }
+}
+
+int _amountFromText(String value) {
+  return int.tryParse(value.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+}
+
+String _formatAmount(int value) {
+  final s = value.toString();
+  final buffer = StringBuffer();
+  for (var i = 0; i < s.length; i++) {
+    if (i > 0 && (s.length - i) % 3 == 0) buffer.write(' ');
+    buffer.write(s[i]);
+  }
+  return buffer.toString();
 }
