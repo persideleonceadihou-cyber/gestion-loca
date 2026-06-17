@@ -1,623 +1,856 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Paiement de Loyer</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Paiement du loyer</title>
   <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#F4F6FB;min-height:100vh;display:flex;flex-direction:column}
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:      #1A2B5E;
+      --navy-dark: #0D1B2E;
+      --cream:     #F2C94C;
+      --cream-lt:  #FDF6DC;
+      --bg:        #F5F0E8;
+      --white:     #FFFFFF;
+      --muted:     #7A6F52;
+      --border:    #ECE6D6;
+      --green:     #149954;
+      --red:       #E53935;
+      --blue:      #1F6FEB;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
 
     /* ── HEADER ── */
-    .header{background:linear-gradient(135deg,#0F2542 0%,#1A5CCA 100%);padding:32px 20px 28px;text-align:center;color:#fff}
-    .header-logo{width:56px;height:56px;background:rgba(255,255,255,.15);border-radius:16px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px}
-    .header h1{font-size:22px;font-weight:800;letter-spacing:-.3px}
-    .header p{font-size:13px;color:rgba(255,255,255,.65);margin-top:4px}
+    header {
+      background: var(--navy);
+      padding: 28px 20px 24px;
+      text-align: center;
+    }
+    header .logo-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    header .logo-icon {
+      width: 36px; height: 36px;
+      background: var(--cream);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    header h1 {
+      color: #fff;
+      font-size: 20px;
+      font-weight: 800;
+    }
+    header p {
+      color: #ABC4E0;
+      font-size: 13px;
+      margin-top: 2px;
+    }
 
-    /* ── CONTENEUR ── */
-    .container{max-width:480px;width:100%;margin:0 auto;padding:24px 16px 60px;flex:1}
+    /* ── MAIN ── */
+    main {
+      flex: 1;
+      max-width: 480px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 24px 16px 40px;
+    }
 
     /* ── CARD ── */
-    .card{background:#fff;border-radius:20px;padding:24px;box-shadow:0 2px 20px rgba(0,0,0,.07);margin-bottom:16px}
-
-    /* ── ÉTAPE CODE ── */
-    .step-label{font-size:11px;font-weight:800;color:#8A9BB0;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:12px}
-    .code-wrap{display:flex;flex-direction:column;gap:12px}
-    .code-input{
-      width:100%;font-size:36px;font-weight:900;letter-spacing:14px;text-align:center;
-      text-transform:uppercase;border:2px solid #E8EDF4;border-radius:16px;
-      padding:20px 12px;outline:none;color:#0F2542;background:#F8FAFF;
-      transition:border-color .2s;-webkit-appearance:none
-    }
-    .code-input:focus{border-color:#1A5CCA;background:#fff}
-    .code-input::placeholder{color:#C5CDD8;font-size:28px;letter-spacing:10px}
-    .btn-search{
-      width:100%;height:52px;background:#1A5CCA;border:none;border-radius:14px;
-      cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
-      transition:background .15s;color:#fff;font-size:15px;font-weight:800;letter-spacing:.3px
-    }
-    .btn-search:hover{background:#155BB5}
-    .btn-search:disabled{background:#A0B4D0;cursor:not-allowed}
-    .hint{font-size:12px;color:#A0AFBF;margin-top:10px;text-align:center;line-height:1.5}
-
-    /* ── ERREUR ── */
-    .error{background:#FFF0EE;border:1px solid #FFBCB3;border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:8px;margin-top:12px}
-    .error span{font-size:13px;color:#C0392B;line-height:1.4}
-    .hidden{display:none!important}
-
-    /* ── CARTE LOCATAIRE ── */
-    .tenant-header{display:flex;align-items:center;gap:14px;margin-bottom:18px}
-    .avatar{
-      width:52px;height:52px;border-radius:14px;background:#0F2542;
-      display:flex;align-items:center;justify-content:center;
-      font-size:22px;font-weight:900;color:#fff;flex-shrink:0
-    }
-    .tenant-name{font-size:18px;font-weight:800;color:#0F2542;line-height:1.2}
-    .tenant-meta{font-size:12px;color:#7A8FA6;margin-top:3px}
-    .status-badge{
-      display:inline-flex;align-items:center;gap:5px;padding:4px 10px;
-      border-radius:20px;font-size:11px;font-weight:700;margin-top:6px
-    }
-    .badge-ok{background:#EAFAF1;color:#1E7E34;border:1px solid #A8E6BC}
-    .badge-late{background:#FFF0EE;color:#C0392B;border:1px solid #FFBCB3}
-    .divider{border:none;border-top:1px solid #F0F4FA;margin:16px 0}
-    .rent-row{display:flex;justify-content:space-between;align-items:center}
-    .rent-label{font-size:13px;color:#7A8FA6}
-    .rent-value{font-size:17px;font-weight:900;color:#0F2542}
-    .rent-currency{font-size:13px;font-weight:600;color:#1A5CCA;margin-left:3px}
-
-    /* ── SÉLECTEUR DE MOIS ── */
-    .section-title{font-size:14px;font-weight:800;color:#0F2542;margin-bottom:12px}
-    .months-selector{display:flex;align-items:center;justify-content:space-between;background:#F8FAFF;border-radius:14px;padding:14px 18px}
-    .btn-count{
-      width:42px;height:42px;background:#1A5CCA;border:none;border-radius:10px;
-      cursor:pointer;display:flex;align-items:center;justify-content:center;
-      font-size:22px;color:#fff;font-weight:700;transition:background .15s;user-select:none
-    }
-    .btn-count:hover{background:#155BB5}
-    .months-val{font-size:42px;font-weight:900;color:#0F2542;line-height:1}
-    .months-sub{font-size:12px;color:#8A9BB0;text-align:center;margin-top:2px}
-
-    /* ── TOTAL ── */
-    .total-box{
-      background:linear-gradient(135deg,#0F2542,#1A5CCA);
-      border-radius:14px;padding:18px 20px;display:flex;
-      justify-content:space-between;align-items:center;margin:16px 0
-    }
-    .total-box-left p{font-size:12px;color:rgba(255,255,255,.6);margin-bottom:2px}
-    .total-box-left small{font-size:11px;color:rgba(255,255,255,.4)}
-    .total-amount{font-size:28px;font-weight:900;color:#fff}
-
-    /* ── MODES DE PAIEMENT ── */
-    .method{
-      display:flex;align-items:center;gap:12px;padding:14px 16px;
-      border-radius:14px;border:2px solid #E8EDF4;cursor:pointer;
-      margin-bottom:10px;transition:all .15s;background:#fff
-    }
-    .method:hover{border-color:#1A5CCA}
-    .method.active{border-color:var(--mc);background:var(--mb)}
-    .method-ico{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
-    .method-name{font-size:15px;font-weight:700;color:#0F2542;flex:1}
-    .method-check{width:22px;height:22px;border-radius:50%;border:2px solid #D0D8E4;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;transition:all .15s}
-    .method.active .method-check{background:var(--mc);border-color:var(--mc);color:#fff}
-
-    /* ── BOUTON PAYER ── */
-    .btn-pay{
-      width:100%;padding:17px;background:#149954;border:none;border-radius:16px;
-      color:#fff;font-size:16px;font-weight:800;cursor:pointer;margin-top:20px;
-      display:flex;align-items:center;justify-content:center;gap:10px;
-      transition:opacity .15s;letter-spacing:.3px
-    }
-    .btn-pay:disabled{background:#B0BEC5;cursor:not-allowed}
-    .btn-back{
-      width:100%;padding:11px;background:none;border:none;color:#8A9BB0;
-      font-size:13px;cursor:pointer;margin-top:10px;text-align:center
+    .card {
+      background: var(--white);
+      border-radius: 20px;
+      padding: 22px;
+      box-shadow: 0 4px 20px rgba(26,43,94,.07);
     }
 
-    /* ── SAISIE TÉLÉPHONE ── */
-    .phone-wrap{position:relative;margin-top:12px}
-    .phone-prefix{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:16px;font-weight:700;color:#0F2542;pointer-events:none}
-    .phone-input{
-      width:100%;padding:14px 14px 14px 70px;font-size:18px;font-weight:700;
-      color:#0F2542;border:2px solid #E8EDF4;border-radius:12px;outline:none;
-      background:#F8FAFF;transition:border-color .2s
+    /* ── STEP INDICATOR ── */
+    .steps {
+      display: flex;
+      align-items: center;
+      margin-bottom: 24px;
+      gap: 0;
     }
-    .phone-input:focus{border-color:#1A5CCA;background:#fff}
-    .phone-hint{font-size:11px;color:#8A9BB0;margin-top:8px;display:flex;align-items:center;gap:6px}
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+    }
+    .step-dot {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: #EEF3F8;
+      color: #8A9BB0;
+      font-size: 12px;
+      font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: all .25s;
+    }
+    .step-dot.active { background: var(--navy); color: #fff; }
+    .step-dot.done   { background: var(--green); color: #fff; }
+    .step-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #8A9BB0;
+      transition: color .25s;
+      white-space: nowrap;
+    }
+    .step.active .step-label { color: var(--navy); }
+    .step.done  .step-label  { color: var(--green); }
+    .step-line {
+      flex: 1;
+      height: 2px;
+      background: #EEF3F8;
+      margin: 0 6px;
+      transition: background .25s;
+    }
+    .step-line.done { background: var(--green); }
 
-    /* ── VIREMENT ── */
-    .bank-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #F0F4FA;font-size:13px}
-    .bank-row span:first-child{color:#7A8FA6}
-    .bank-row span:last-child{font-weight:700;color:#0F2542}
-    .btn-copy-bank{
-      width:100%;margin-top:12px;padding:10px;background:#F4F6FB;
-      border:1px solid #E0E8F0;border-radius:10px;cursor:pointer;
-      font-size:12px;font-weight:700;color:#7A8FA6;display:flex;align-items:center;justify-content:center;gap:6px
+    /* ── SECTION TITLE ── */
+    .section-title {
+      font-size: 17px;
+      font-weight: 900;
+      color: var(--navy);
+      margin-bottom: 4px;
+    }
+    .section-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 20px;
+      line-height: 1.5;
     }
 
-    /* ── TRAITEMENT ── */
-    .processing{text-align:center;padding:50px 20px}
-    .spinner{width:60px;height:60px;border:4px solid #E8EDF4;border-top-color:#1A5CCA;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 20px}
-    @keyframes spin{to{transform:rotate(360deg)}}
-    .processing h2{font-size:19px;font-weight:800;color:#0F2542;margin-bottom:6px}
-    .processing p{font-size:13px;color:#8A9BB0}
+    /* ── CODE INPUT ── */
+    .code-input-wrap {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .code-input {
+      flex: 1;
+      background: #F0F4FA;
+      border: 1.5px solid #DDEAF8;
+      border-radius: 14px;
+      padding: 14px 16px;
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 8px;
+      color: var(--navy);
+      text-transform: uppercase;
+      text-align: center;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .code-input:focus { border-color: var(--blue); }
+    .code-input.error { border-color: var(--red); }
+    .code-hint {
+      font-size: 11px;
+      color: var(--muted);
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .code-hint.error-msg { color: var(--red); font-weight: 700; }
 
-    /* ── SUCCÈS ── */
-    .success{text-align:center;padding:32px 20px}
-    .success-icon{font-size:64px;margin-bottom:16px;animation:pop .4s ease}
-    @keyframes pop{0%{transform:scale(.5);opacity:0}80%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
-    .success h2{font-size:24px;font-weight:900;color:#0F2542;margin-bottom:6px}
-    .success-sum{font-size:36px;font-weight:900;color:#1A5CCA;margin-bottom:6px}
-    .success-sub{font-size:13px;color:#7A8FA6;margin-bottom:20px}
-    .success-receipt{background:#F0FAE8;border:1px solid #BDDEA0;border-radius:14px;padding:16px;text-align:left;margin-bottom:16px}
-    .success-receipt p{font-size:13px;color:#2E6B10;line-height:1.7}
-    .btn-receipt{
-      width:100%;padding:12px;background:#fff;border:2px solid #1A5CCA;
-      border-radius:12px;color:#1A5CCA;font-size:14px;font-weight:700;cursor:pointer;
-      display:flex;align-items:center;justify-content:center;gap:8px
+    /* ── BTN ── */
+    .btn {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 14px;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: opacity .2s, transform .1s;
+    }
+    .btn:active { transform: scale(.98); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-primary { background: linear-gradient(135deg, var(--navy-dark), var(--blue)); color: #fff; }
+    .btn-green   { background: var(--green); color: #fff; }
+    .btn-yellow  { background: var(--cream); color: var(--navy); }
+    .btn-outline {
+      background: transparent;
+      border: 1.5px solid var(--border);
+      color: var(--navy);
+      margin-top: 10px;
+    }
+    .btn-wa { background: #25D366; color: #fff; }
+
+    /* ── TENANT CARD ── */
+    .tenant-card {
+      background: linear-gradient(135deg, var(--navy-dark), #1A4480);
+      border-radius: 16px;
+      padding: 18px;
+      color: #fff;
+      margin-bottom: 20px;
+    }
+    .tenant-avatar {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: var(--cream);
+      color: var(--navy);
+      font-size: 17px;
+      font-weight: 900;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 12px;
+    }
+    .tenant-name { font-size: 18px; font-weight: 900; margin-bottom: 2px; }
+    .tenant-room { font-size: 13px; color: #ABC4E0; margin-bottom: 14px; }
+    .tenant-amount {
+      display: inline-block;
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 10px;
+      padding: 8px 16px;
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 1px;
+    }
+
+    /* ── BADGE ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-top: 10px;
+    }
+    .badge-ok     { background: #F0FAE4; color: #3B6D11; border: 1px solid #C0DD97; }
+    .badge-warn   { background: #FAEEDF; color: #854F0B; border: 1px solid #F5C97A; }
+    .badge-late   { background: #FFEBE5; color: #993C1D; border: 1px solid #F5B5A0; }
+
+    /* ── MONTHS SELECTOR ── */
+    .months-wrap {
+      margin-bottom: 20px;
+    }
+    .months-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .months-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #F0F4FA;
+      border: 1.5px solid #DDEAF8;
+      border-radius: 14px;
+      padding: 12px 16px;
+    }
+    .months-ctrl {
+      width: 34px; height: 34px;
+      border-radius: 10px;
+      border: none;
+      background: var(--navy);
+      color: #fff;
+      font-size: 18px;
+      font-weight: 900;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    #months-count {
+      flex: 1;
+      text-align: center;
+      font-size: 22px;
+      font-weight: 900;
+      color: var(--navy);
+    }
+    .months-unit {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    /* ── TOTAL BOX ── */
+    .total-box {
+      background: var(--cream-lt);
+      border: 1.5px solid #EDE0A0;
+      border-radius: 14px;
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .total-label { font-size: 13px; color: var(--muted); font-weight: 600; }
+    .total-amount { font-size: 22px; font-weight: 900; color: var(--navy); }
+
+    /* ── METHOD PILLS ── */
+    .methods-label {
+      font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 10px;
+    }
+    .methods-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .method-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1.5px solid var(--border);
+      background: #F0F4FA;
+      cursor: pointer;
+      transition: all .2s;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--navy);
+    }
+    .method-pill .pill-icon { font-size: 20px; }
+    .method-pill.selected {
+      border-color: var(--blue);
+      background: #EEF5FF;
+    }
+
+    /* ── PHONE INPUT ── */
+    .phone-wrap { margin-bottom: 20px; display: none; }
+    .phone-wrap.visible { display: block; }
+    .phone-label {
+      font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 8px;
+    }
+    .phone-input {
+      width: 100%;
+      background: #F0F4FA;
+      border: 1.5px solid #DDEAF8;
+      border-radius: 14px;
+      padding: 14px 16px;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--navy);
+      outline: none;
+    }
+    .phone-input:focus { border-color: var(--blue); }
+
+    /* ── SUCCESS SCREEN ── */
+    .success-icon {
+      width: 72px; height: 72px;
+      background: #F0FAE4;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px;
+      margin: 0 auto 20px;
+    }
+    .success-title {
+      text-align: center;
+      font-size: 20px; font-weight: 900;
+      color: var(--navy);
+      margin-bottom: 6px;
+    }
+    .success-sub {
+      text-align: center;
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+    .receipt-box {
+      background: #F0F4FA;
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .receipt-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      font-size: 13px;
+    }
+    .receipt-row + .receipt-row { border-top: 1px solid var(--border); }
+    .receipt-key { color: var(--muted); }
+    .receipt-val { font-weight: 700; color: var(--navy); }
+
+    /* ── LOADER ── */
+    .spinner {
+      width: 22px; height: 22px;
+      border: 3px solid rgba(255,255,255,.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── HIDDEN ── */
+    .hidden { display: none !important; }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 16px;
+      font-size: 11px;
+      color: #B0A898;
     }
   </style>
 </head>
 <body>
 
-<div class="header">
-  <div class="header-logo">
-    <svg width="28" height="28" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-      <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
-      <polyline points="9 22 9 12 15 12 15 22"/>
-    </svg>
+<header>
+  <div class="logo-row">
+    <div class="logo-icon">🏠</div>
+    <h1>Gestion Locative</h1>
   </div>
-  <h1>Paiement de Loyer</h1>
-  <p id="headerSub">Saisissez votre code unique</p>
-</div>
+  <p>Paiement sécurisé de loyer en ligne</p>
+</header>
 
-<div class="container">
+<main>
+  <div class="card">
 
-  <!-- ① CODE -->
-  <div id="stepCode">
-    <div class="card">
-      <div class="step-label">Code locataire</div>
-      <div class="code-wrap">
-        <input id="codeInput" class="code-input" type="text" maxlength="6"
-               placeholder="XXXXXX" autocomplete="off" spellcheck="false"/>
-        <button class="btn-search" id="btnSearch" onclick="lookup()">
-          <svg width="18" height="18" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
-          Rechercher
-        </button>
+    <!-- STEPS -->
+    <div class="steps">
+      <div class="step active" id="s1">
+        <div class="step-dot active" id="dot1">1</div>
+        <span class="step-label">Identification</span>
       </div>
-      <p class="hint">Votre code unique vous a été transmis par votre propriétaire lors de votre enregistrement.</p>
-      <div id="codeError" class="error hidden">
-        <span>⚠️</span><span id="codeErrorMsg">Code introuvable.</span>
+      <div class="step-line" id="line1"></div>
+      <div class="step" id="s2">
+        <div class="step-dot" id="dot2">2</div>
+        <span class="step-label">Paiement</span>
       </div>
-    </div>
-  </div>
-
-  <!-- ② INFO + PAIEMENT -->
-  <div id="stepInfo" class="hidden">
-
-    <!-- Carte locataire -->
-    <div class="card">
-      <div class="tenant-header">
-        <div class="avatar" id="tenantAvatar">?</div>
-        <div>
-          <div class="tenant-name" id="tenantName">-</div>
-          <div class="tenant-meta" id="tenantMeta">-</div>
-          <div class="status-badge badge-ok" id="tenantBadge">À jour</div>
-        </div>
-      </div>
-      <hr class="divider">
-      <div class="rent-row">
-        <span class="rent-label">Loyer mensuel</span>
-        <span class="rent-value" id="tenantRent">-<span class="rent-currency">FCFA</span></span>
-      </div>
-      <hr class="divider">
-      <!-- Bilan paiement -->
-      <div id="balanceBox" style="display:none">
-        <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px">
-          <span style="color:#7A8FA6">Mois écoulés</span>
-          <span style="font-weight:700;color:#0F2542" id="balMonthsElapsed">—</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px">
-          <span style="color:#7A8FA6">Mois payés</span>
-          <span style="font-weight:700;color:#149954" id="balMonthsPaid">—</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:12px;font-size:13px">
-          <span style="color:#7A8FA6">Mois restants</span>
-          <span style="font-weight:700" id="balMonthsOwed">—</span>
-        </div>
-        <div style="background:#F4F8FF;border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:13px;color:#607086">Solde à régulariser</span>
-          <span style="font-size:18px;font-weight:900" id="balAmount">— FCFA</span>
-        </div>
+      <div class="step-line" id="line2"></div>
+      <div class="step" id="s3">
+        <div class="step-dot" id="dot3">3</div>
+        <span class="step-label">Confirmation</span>
       </div>
     </div>
 
-    <!-- Sélecteur de mois -->
-    <div class="card">
-      <div class="section-title">Nombre de mois à payer</div>
-      <div class="months-selector">
-        <button class="btn-count" onclick="changeMonths(-1)">−</button>
-        <div style="text-align:center">
-          <div class="months-val" id="monthsNum">1</div>
-          <div class="months-sub">mois</div>
-        </div>
-        <button class="btn-count" onclick="changeMonths(1)">+</button>
+    <!-- ══ ÉTAPE 1 : SAISIE CODE ══ -->
+    <div id="step1">
+      <div class="section-title">Votre code de paiement</div>
+      <div class="section-sub">Saisissez le code à 6 caractères fourni par votre propriétaire.</div>
+
+      <div class="code-input-wrap">
+        <input
+          id="code-input"
+          class="code-input"
+          type="text"
+          maxlength="6"
+          placeholder="· · · · · ·"
+          autocomplete="off"
+          spellcheck="false"
+        />
       </div>
+      <div class="code-hint" id="code-hint">Exemple : AB3K7Z</div>
+
+      <button class="btn btn-primary" id="btn-lookup" onclick="lookupCode()">
+        Vérifier mon code
+      </button>
+    </div>
+
+    <!-- ══ ÉTAPE 2 : PAIEMENT ══ -->
+    <div id="step2" class="hidden">
+      <div id="tenant-block"></div>
+
+      <!-- Nombre de mois -->
+      <div class="months-wrap">
+        <div class="months-label">Nombre de mois à régler</div>
+        <div class="months-row">
+          <button class="months-ctrl" onclick="changeMonths(-1)">−</button>
+          <div id="months-count">1</div>
+          <span class="months-unit">mois</span>
+          <button class="months-ctrl" onclick="changeMonths(+1)">+</button>
+        </div>
+      </div>
+
+      <!-- Total -->
       <div class="total-box">
-        <div class="total-box-left">
-          <p>Total à payer</p>
-          <small id="totalFormula">- × 1 mois</small>
+        <span class="total-label">Total à payer</span>
+        <span class="total-amount" id="total-amount">—</span>
+      </div>
+
+      <!-- Moyen de paiement -->
+      <div class="methods-label">Moyen de paiement</div>
+      <div class="methods-grid">
+        <div class="method-pill selected" data-method="mtn" onclick="selectMethod(this)">
+          <span class="pill-icon">📱</span> MTN MoMo
         </div>
-        <div class="total-amount" id="totalAmount">0 FCFA</div>
-      </div>
-    </div>
-
-    <!-- Modes de paiement -->
-    <div class="card">
-      <div class="section-title">Mode de paiement</div>
-
-      <div class="method" id="m_MTN" style="--mc:#E6A817;--mb:#FFFBEC" onclick="selectMethod('MTN')">
-        <div class="method-ico" style="background:#FFF3C4">📱</div>
-        <span class="method-name">MTN MoMo</span>
-        <div class="method-check" id="chk_MTN">✓</div>
+        <div class="method-pill" data-method="moov" onclick="selectMethod(this)">
+          <span class="pill-icon">📲</span> Moov Money
+        </div>
+        <div class="method-pill" data-method="celtis" onclick="selectMethod(this)">
+          <span class="pill-icon">💳</span> Celtis Cash
+        </div>
+        <div class="method-pill" data-method="cash" onclick="selectMethod(this)">
+          <span class="pill-icon">💵</span> Espèces
+        </div>
       </div>
 
-      <div class="method" id="m_Moov" style="--mc:#003087;--mb:#EEF2FA" onclick="selectMethod('Moov')">
-        <div class="method-ico" style="background:#E8EDF8">📱</div>
-        <span class="method-name">Moov Money</span>
-        <div class="method-check" id="chk_Moov">✓</div>
+      <!-- Numéro de téléphone (Mobile Money) -->
+      <div class="phone-wrap visible" id="phone-wrap">
+        <div class="phone-label">Numéro Mobile Money</div>
+        <input class="phone-input" id="phone-input" type="tel" placeholder="+229 01 XX XX XX XX" />
       </div>
 
-      <div class="method" id="m_Celtis" style="--mc:#00A86B;--mb:#EDFAF4" onclick="selectMethod('Celtis')">
-        <div class="method-ico" style="background:#E0F7EE">📱</div>
-        <span class="method-name">Celtis Mobile</span>
-        <div class="method-check" id="chk_Celtis">✓</div>
-      </div>
-
-      <div class="method" id="m_Banque" style="--mc:#0F2542;--mb:#EEF1F5" onclick="selectMethod('Banque')">
-        <div class="method-ico" style="background:#E8EDF4">🏦</div>
-        <span class="method-name">Virement bancaire</span>
-        <div class="method-check" id="chk_Banque">✓</div>
-      </div>
-
-      <button class="btn-pay" id="btnPay" disabled onclick="startPayment()">
-        <svg width="18" height="18" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-          <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
-        </svg>
-        PAYER MAINTENANT
+      <button class="btn btn-yellow" id="btn-pay" onclick="confirmPayment()">
+        Confirmer le paiement
       </button>
-      <button class="btn-back" onclick="resetCode()">← Changer de code</button>
+      <button class="btn btn-outline" onclick="resetToStep1()">← Changer de code</button>
     </div>
-  </div>
 
-  <!-- ③ MOBILE MONEY -->
-  <div id="stepMobile" class="hidden">
-    <div class="card">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
-        <div class="method-ico" id="mobileIcon" style="background:#FFF3C4;width:44px;height:44px;border-radius:12px;font-size:22px">📱</div>
-        <strong id="mobileLabel" style="font-size:17px;font-weight:800;color:#0F2542">MTN MoMo</strong>
-      </div>
-      <div style="background:#F4F8FF;border-radius:12px;padding:14px;text-align:center;margin-bottom:18px">
-        <div style="font-size:12px;color:#7A8FA6;margin-bottom:3px">Montant à payer</div>
-        <div style="font-size:26px;font-weight:900;color:#0F2542" id="mobileTotal">0 FCFA</div>
-      </div>
-      <label style="font-size:12px;font-weight:700;color:#7A8FA6;display:block;margin-bottom:6px">NUMÉRO DE TÉLÉPHONE</label>
-      <div class="phone-wrap">
-        <span class="phone-prefix">+229</span>
-        <input type="tel" id="phoneInput" class="phone-input" placeholder="97 XX XX XX" maxlength="10"/>
-      </div>
-      <p id="phoneError" class="hidden" style="color:#C0392B;font-size:12px;margin-top:6px">Numéro invalide (min. 8 chiffres).</p>
-      <div class="phone-hint">
-        <span>ℹ️</span>
-        <span>Vous recevrez une notification push pour confirmer.</span>
-      </div>
-    </div>
-    <button class="btn-pay" onclick="confirmPayment()">Confirmer le paiement</button>
-    <button class="btn-back" onclick="goBack()">← Retour</button>
-  </div>
-
-  <!-- ③ VIREMENT BANCAIRE -->
-  <div id="stepBank" class="hidden">
-    <div class="card">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
-        <div class="method-ico" style="background:#E8EDF4;width:44px;height:44px;border-radius:12px;font-size:22px">🏦</div>
-        <strong style="font-size:17px;font-weight:800;color:#0F2542">Coordonnées bancaires</strong>
-      </div>
-      <div class="bank-row"><span>Banque</span><span>BOA Bénin</span></div>
-      <div class="bank-row"><span>Titulaire</span><span>Gestion Locative</span></div>
-      <div class="bank-row"><span>N° Compte</span><span>BJ0610001234567890123</span></div>
-      <div class="bank-row"><span>Référence</span><span id="bankRef">-</span></div>
-      <div class="bank-row"><span>Montant</span><span id="bankAmount">-</span></div>
-      <button class="btn-copy-bank" onclick="copyBank()">📋 Copier les coordonnées</button>
-    </div>
-    <button class="btn-pay" onclick="confirmPayment()">J'ai effectué le virement</button>
-    <button class="btn-back" onclick="goBack()">← Retour</button>
-  </div>
-
-  <!-- ④ TRAITEMENT -->
-  <div id="stepProcessing" class="hidden">
-    <div class="card processing">
-      <div class="spinner"></div>
-      <h2>Traitement en cours…</h2>
-      <p>Ne fermez pas cette page.</p>
-    </div>
-  </div>
-
-  <!-- ⑤ SUCCÈS -->
-  <div id="stepSuccess" class="hidden">
-    <div class="card success">
+    <!-- ══ ÉTAPE 3 : SUCCÈS ══ -->
+    <div id="step3" class="hidden">
       <div class="success-icon">✅</div>
-      <h2>Paiement confirmé !</h2>
-      <div class="success-sum" id="successAmount">0 FCFA</div>
-      <div class="success-sub" id="successSub">-</div>
-      <div class="success-receipt">
-        <p id="receiptContent">-</p>
-      </div>
-      <button class="btn-receipt" onclick="copyReceipt()">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-        Copier le reçu
-      </button>
+      <div class="success-title">Paiement enregistré !</div>
+      <div class="success-sub" id="success-sub">Votre paiement a été transmis à votre propriétaire avec succès.</div>
+      <div class="receipt-box" id="receipt-box"></div>
+      <button class="btn btn-primary" onclick="resetToStep1()">Faire un autre paiement</button>
     </div>
+
   </div>
+</main>
 
-</div>
+<footer>Gestion Locative &copy; 2026 — Paiements sécurisés</footer>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, getDoc, addDoc, setDoc, collection, query, where, getDocs, serverTimestamp }
-  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+<script>
+  // ══════════════════════════════════════════
+  // CONFIG FIREBASE — remplace par tes vraies valeurs
+  // ══════════════════════════════════════════
+  const FIREBASE_PROJECT_ID = 'gestion-loca-66598';
+  const API_KEY             = 'AIzaSyBvU5twv8dFCpb-P95iO0Vju0tOAF2n9lw';
 
-const app = initializeApp({
-  apiKey: "AIzaSyBYWT7L2wcrpMCTPixjRo78Zx-CVt7y0IA",
-  authDomain: "sample-firebase-ai-app-g-96d78.firebaseapp.com",
-  projectId: "sample-firebase-ai-app-g-96d78",
-  storageBucket: "sample-firebase-ai-app-g-96d78.firebasestorage.app",
-  messagingSenderId: "56626745106",
-  appId: "1:56626745106:web:19e99bb3d72717a24c2dcb"
-});
-const db = getFirestore(app);
+  // ── État global ──
+  let currentTenant = null;
+  let monthsCount   = 1;
+  let rentAmount    = 0;
+  let selectedMethod = 'mtn';
 
-// ── État ──────────────────────────────────────────────
-let tenant = null;
-let monthlyRent = 0;
-let months = 1;
-let method = null;
+  // ══════════════════════════════════════════
+  // ÉTAPE 1 — Lookup via API REST Firestore
+  // ══════════════════════════════════════════
+  async function lookupCode() {
+    const rawCode = document.getElementById('code-input').value.trim().toUpperCase();
+    const hint    = document.getElementById('code-hint');
+    const btn     = document.getElementById('btn-lookup');
+    const input   = document.getElementById('code-input');
 
-// ── Formatage nombre ─────────────────────────────────
-const fmt = n => n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    if (rawCode.length !== 6) {
+      setError('Le code doit contenir exactement 6 caractères.');
+      return;
+    }
 
-// ── Code depuis URL ──────────────────────────────────
-const urlCode = new URLSearchParams(window.location.search).get('code') || '';
-if (urlCode) {
-  document.getElementById('codeInput').value = urlCode.toUpperCase();
-  document.addEventListener('DOMContentLoaded', () => setTimeout(lookup, 400));
-}
+    // UI loading
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner"></div> Vérification…';
+    input.classList.remove('error');
+    hint.className = 'code-hint';
+    hint.textContent = 'Recherche en cours…';
 
-// ── Recherche locataire ──────────────────────────────
-window.lookup = async function () {
-  const code = document.getElementById('codeInput').value.trim().toUpperCase();
-  const errBox = document.getElementById('codeError');
-  errBox.classList.add('hidden');
+    try {
+      // 1. Chercher dans /payment_codes/{code}
+      const codeUrl =
+        `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/payment_codes/${rawCode}?key=${API_KEY}`;
+      const codeRes = await fetch(codeUrl);
 
-  if (code.length !== 6) {
-    document.getElementById('codeErrorMsg').textContent = 'Le code doit contenir exactement 6 caractères.';
-    errBox.classList.remove('hidden');
-    return;
+      if (!codeRes.ok) {
+        setError('Code introuvable. Vérifiez et réessayez.');
+        return;
+      }
+
+      const codeDoc = await codeRes.json();
+      const fields  = codeDoc.fields || {};
+      const uid      = fields.uid?.stringValue      || '';
+      const tenantId = fields.tenantId?.stringValue || '';
+
+      if (!uid || !tenantId) {
+        setError('Code invalide. Contactez votre propriétaire.');
+        return;
+      }
+
+      // 2. Chercher le locataire dans /users/{uid}/locataires/{tenantId}
+      const tenantUrl =
+        `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/users/${uid}/locataires/${tenantId}?key=${API_KEY}`;
+      const tenantRes = await fetch(tenantUrl);
+
+      if (!tenantRes.ok) {
+        setError('Dossier locataire introuvable. Contactez votre propriétaire.');
+        return;
+      }
+
+      const tenantDoc = await tenantRes.json();
+      const tf = tenantDoc.fields || {};
+
+      currentTenant = {
+        uid,
+        tenantId,
+        paymentCode: rawCode,
+        name:         tf.name?.stringValue         || tf.nom?.stringValue    || 'Locataire',
+        room:         tf.roomNumber?.stringValue    || tf.chambre?.stringValue || '—',
+        property:     tf.propertyName?.stringValue  || tf.bien?.stringValue   || '—',
+        rentStr:      tf.rentAmount?.stringValue    || '0 FCFA',
+        status:       tf.statusLabel?.stringValue   || 'A jour',
+      };
+
+      // Extraire le montant numérique
+      rentAmount  = parseInt(currentTenant.rentStr.replace(/[^0-9]/g, '')) || 0;
+      monthsCount = 1;
+
+      goToStep2();
+
+    } catch (err) {
+      setError('Erreur réseau. Vérifiez votre connexion et réessayez.');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = 'Vérifier mon code';
+    }
   }
 
-  const btn = document.getElementById('btnSearch');
-  btn.disabled = true;
-  btn.innerHTML = '<div style="width:20px;height:20px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite"></div>';
+  function setError(msg) {
+    const hint  = document.getElementById('code-hint');
+    const input = document.getElementById('code-input');
+    hint.className = 'code-hint error-msg';
+    hint.textContent = msg;
+    input.classList.add('error');
+  }
 
-  try {
-    const snap = await getDoc(doc(db, 'payment_codes', code));
-    if (!snap.exists()) throw new Error('Code introuvable. Vérifiez votre code.');
+  // ══════════════════════════════════════════
+  // ÉTAPE 2 — Affichage + sélection
+  // ══════════════════════════════════════════
+  function goToStep2() {
+    // Mettre à jour les steps
+    setStepActive(2);
 
-    const meta = snap.data();
-    const tSnap = await getDoc(doc(db, 'users', meta.uid, 'locataires', meta.tenantId));
-    if (!tSnap.exists()) throw new Error('Dossier locataire introuvable.');
+    // Rendre la fiche locataire
+    const initials = currentTenant.name.trim()
+      .split(/\s+/).filter(Boolean).map(p => p[0]).slice(0,2).join('').toUpperCase() || '?';
 
-    tenant = { uid: meta.uid, tenantId: meta.tenantId, code, ...tSnap.data() };
-    monthlyRent = parseInt((tenant.rentAmount || '0').replace(/\D/g, '')) || 0;
+    const badgeClass = currentTenant.status === 'A jour'   ? 'badge-ok'
+                     : currentTenant.status === 'Retard'   ? 'badge-late'
+                     : 'badge-warn';
+    const badgeIcon  = currentTenant.status === 'A jour'   ? '✔'
+                     : currentTenant.status === 'Retard'   ? '⚠'
+                     : '⏳';
 
-    const name = tenant.name || '';
-    const isLate = (tenant.statusLabel || '').toLowerCase().includes('retard');
-
-    document.getElementById('tenantAvatar').textContent = name ? name[0].toUpperCase() : '?';
-    document.getElementById('tenantName').textContent = name;
-    document.getElementById('tenantMeta').textContent =
-      [tenant.roomNumber ? 'Chambre ' + tenant.roomNumber : '', tenant.propertyName].filter(Boolean).join(' · ');
-    const badge = document.getElementById('tenantBadge');
-    badge.textContent = isLate ? 'En retard' : 'À jour';
-    badge.className = 'status-badge ' + (isLate ? 'badge-late' : 'badge-ok');
-    document.getElementById('tenantRent').innerHTML = fmt(monthlyRent) + '<span class="rent-currency">FCFA</span>';
-    document.getElementById('headerSub').textContent = 'Code : ' + code;
+    document.getElementById('tenant-block').innerHTML = `
+      <div class="tenant-card">
+        <div class="tenant-avatar">${initials}</div>
+        <div class="tenant-name">${currentTenant.name}</div>
+        <div class="tenant-room">Chambre ${currentTenant.room} · ${currentTenant.property}</div>
+        <div class="tenant-amount">${currentTenant.rentStr} / mois</div>
+        <span class="badge ${badgeClass}">${badgeIcon} ${currentTenant.status}</span>
+      </div>
+    `;
 
     updateTotal();
 
-    // ── Bilan paiement ──
-    try {
-      const MS_PER_MONTH = 30.4375 * 24 * 3600 * 1000;
-      const entryRaw = tenantData.entryDate;
-      const entryMs = entryRaw ? (entryRaw.toDate ? entryRaw.toDate().getTime() : new Date(entryRaw).getTime()) : null;
-      const monthsElapsed = entryMs ? Math.floor((Date.now() - entryMs) / MS_PER_MONTH) : null;
-
-      const pSnap = await getDocs(query(
-        collection(db, 'users', meta.uid, 'paiements'),
-        where('tenantId', '==', meta.tenantId)
-      ));
-      let monthsPaid = 0;
-      pSnap.forEach(d => { monthsPaid += (d.data().monthsCount || 1); });
-
-      const monthsOwed = monthsElapsed != null ? Math.max(0, monthsElapsed - monthsPaid) : null;
-      const balance = monthsOwed != null ? monthsOwed * monthlyRent : null;
-
-      document.getElementById('balMonthsElapsed').textContent = monthsElapsed != null ? monthsElapsed + ' mois' : '—';
-      document.getElementById('balMonthsPaid').textContent = monthsPaid + ' mois';
-      const owedEl = document.getElementById('balMonthsOwed');
-      owedEl.textContent = monthsOwed != null ? monthsOwed + ' mois' : '—';
-      owedEl.style.color = (monthsOwed > 0) ? '#C0392B' : '#149954';
-      const balEl = document.getElementById('balAmount');
-      balEl.textContent = balance != null ? fmt(balance) + ' FCFA' : '— FCFA';
-      balEl.style.color = (balance > 0) ? '#C0392B' : '#149954';
-      document.getElementById('balanceBox').style.display = 'block';
-    } catch(_) {}
-
-    show('stepCode', 'stepInfo');
-  } catch (e) {
-    document.getElementById('codeErrorMsg').textContent = e.message || 'Erreur. Réessayez.';
-    errBox.classList.remove('hidden');
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '<svg width="22" height="22" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
+    document.getElementById('step1').classList.add('hidden');
+    document.getElementById('step2').classList.remove('hidden');
   }
-};
 
-// ── Mois ─────────────────────────────────────────────
-window.changeMonths = d => {
-  months = Math.max(1, Math.min(12, months + d));
-  document.getElementById('monthsNum').textContent = months;
-  updateTotal();
-};
-
-function updateTotal() {
-  const total = monthlyRent * months;
-  document.getElementById('totalAmount').textContent = fmt(total) + ' FCFA';
-  document.getElementById('totalFormula').textContent = fmt(monthlyRent) + ' × ' + months + ' mois';
-}
-
-// ── Sélection méthode ────────────────────────────────
-window.selectMethod = m => {
-  method = m;
-  ['MTN', 'Moov', 'Celtis', 'Banque'].forEach(k => {
-    document.getElementById('m_' + k).classList.toggle('active', k === m);
-  });
-  document.getElementById('btnPay').disabled = false;
-};
-
-// ── Lancer paiement ──────────────────────────────────
-window.startPayment = () => {
-  if (!method) return;
-  const total = monthlyRent * months;
-
-  if (method === 'Banque') {
-    document.getElementById('bankRef').textContent = tenant.code;
-    document.getElementById('bankAmount').textContent = fmt(total) + ' FCFA';
-    show('stepInfo', 'stepBank');
-  } else {
-    const labels = { MTN: 'MTN MoMo', Moov: 'Moov Money', Celtis: 'Celtis Mobile' };
-    const icons  = { MTN: '#FFF3C4', Moov: '#E8EDF8', Celtis: '#E0F7EE' };
-    document.getElementById('mobileLabel').textContent = labels[method];
-    document.getElementById('mobileIcon').style.background = icons[method];
-    document.getElementById('mobileTotal').textContent = fmt(total) + ' FCFA';
-    show('stepInfo', 'stepMobile');
+  function updateTotal() {
+    const total = rentAmount * monthsCount;
+    document.getElementById('total-amount').textContent = fmtAmount(total) + ' FCFA';
   }
-};
 
-window.goBack = () => {
-  ['stepMobile', 'stepBank'].forEach(id => document.getElementById(id).classList.add('hidden'));
-  document.getElementById('stepInfo').classList.remove('hidden');
-};
+  function changeMonths(delta) {
+    monthsCount = Math.max(1, Math.min(12, monthsCount + delta));
+    document.getElementById('months-count').textContent = monthsCount;
+    updateTotal();
+  }
 
-// ── Confirmer paiement (sandbox) ─────────────────────
-window.confirmPayment = async () => {
-  if (method !== 'Banque') {
-    const phone = document.getElementById('phoneInput').value.trim();
-    const phoneErr = document.getElementById('phoneError');
-    if (phone.replace(/\D/g,'').length < 8) {
-      phoneErr.classList.remove('hidden'); return;
+  function selectMethod(el) {
+    document.querySelectorAll('.method-pill').forEach(p => p.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedMethod = el.dataset.method;
+    const phoneWrap = document.getElementById('phone-wrap');
+    if (selectedMethod === 'cash') {
+      phoneWrap.classList.remove('visible');
+    } else {
+      phoneWrap.classList.add('visible');
     }
-    phoneErr.classList.add('hidden');
   }
 
-  ['stepMobile', 'stepBank'].forEach(id => document.getElementById(id).classList.add('hidden'));
-  document.getElementById('stepProcessing').classList.remove('hidden');
+  // ══════════════════════════════════════════
+  // ÉTAPE 3 — Enregistrement paiement
+  // ══════════════════════════════════════════
+  async function confirmPayment() {
+    const btn = document.getElementById('btn-pay');
+    const phone = document.getElementById('phone-input').value.trim();
 
-  await new Promise(r => setTimeout(r, 3000));
+    if (selectedMethod !== 'cash' && !phone) {
+      alert('Veuillez saisir votre numéro Mobile Money.');
+      return;
+    }
 
-  try {
-    const total = monthlyRent * months;
-    const methodLabel = { MTN: 'MTN MoMo', Moov: 'Moov Money', Celtis: 'Celtis Mobile', Banque: 'Virement' }[method];
+    const total = rentAmount * monthsCount;
+    const methodLabel = {
+      mtn:    'MTN MoMo',
+      moov:   'Moov Money',
+      celtis: 'Celtis Cash',
+      cash:   'Espèces',
+    }[selectedMethod] || selectedMethod;
 
-    await addDoc(collection(db, 'users', tenant.uid, 'paiements'), {
-      tenantId: tenant.tenantId,
-      tenantName: tenant.name || '',
-      amount: total,
-      method: methodLabel,
-      status: 'paye',
-      monthsCount: months,
-      source: 'lien_partage',
-      paymentCode: tenant.code,
-      createdAt: serverTimestamp()
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner"></div> Enregistrement…';
+
+    try {
+      // Enregistrer dans /users/{uid}/paiements (via REST)
+      const now = new Date().toISOString();
+      const paymentData = {
+        fields: {
+          tenantId:    { stringValue: currentTenant.tenantId },
+          tenantName:  { stringValue: currentTenant.name },
+          paymentCode: { stringValue: currentTenant.paymentCode },
+          amount:      { integerValue: total },
+          monthsCount: { integerValue: monthsCount },
+          method:      { stringValue: methodLabel },
+          phone:       { stringValue: phone || '' },
+          status:      { stringValue: 'paye' },
+          source:      { stringValue: 'web' },
+          createdAt:   { timestampValue: now },
+        }
+      };
+
+      const payUrl =
+        `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/users/${currentTenant.uid}/paiements?key=${API_KEY}`;
+
+      const res = await fetch(payUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(paymentData),
+      });
+
+      if (!res.ok) throw new Error('Firestore write failed');
+
+      // Mettre à jour le statut du locataire
+      const patchUrl =
+        `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents/users/${currentTenant.uid}/locataires/${currentTenant.tenantId}?key=${API_KEY}&updateMask.fieldPaths=statusLabel&updateMask.fieldPaths=balanceLabel&updateMask.fieldPaths=paymentSummary&updateMask.fieldPaths=lastPaymentAt`;
+
+      await fetch(patchUrl, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fields: {
+            statusLabel:    { stringValue: 'A jour' },
+            balanceLabel:   { stringValue: 'Solde à jour' },
+            paymentSummary: { stringValue: `Dernier paiement web : ${fmtAmount(total)} FCFA (${monthsCount} mois)` },
+            lastPaymentAt:  { timestampValue: now },
+          }
+        }),
+      });
+
+      goToStep3(total, methodLabel, phone);
+
+    } catch (err) {
+      alert('Erreur lors de l\'enregistrement. Vérifiez votre connexion.');
+      btn.disabled = false;
+      btn.innerHTML = 'Confirmer le paiement';
+    }
+  }
+
+  function goToStep3(total, methodLabel, phone) {
+    setStepActive(3);
+
+    const ref = 'PAY-' + currentTenant.paymentCode + '-' + Date.now().toString(36).toUpperCase();
+    const dateStr = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+
+    document.getElementById('success-sub').textContent =
+      `Votre paiement de ${fmtAmount(total)} FCFA a été transmis à votre propriétaire. Conservez votre référence.`;
+
+    document.getElementById('receipt-box').innerHTML = `
+      <div class="receipt-row">
+        <span class="receipt-key">Locataire</span>
+        <span class="receipt-val">${currentTenant.name}</span>
+      </div>
+      <div class="receipt-row">
+        <span class="receipt-key">Chambre</span>
+        <span class="receipt-val">${currentTenant.room} · ${currentTenant.property}</span>
+      </div>
+      <div class="receipt-row">
+        <span class="receipt-key">Mois réglés</span>
+        <span class="receipt-val">${monthsCount} mois</span>
+      </div>
+      <div class="receipt-row">
+        <span class="receipt-key">Montant total</span>
+        <span class="receipt-val">${fmtAmount(total)} FCFA</span>
+      </div>
+      <div class="receipt-row">
+        <span class="receipt-key">Moyen</span>
+        <span class="receipt-val">${methodLabel}${phone ? ' · ' + phone : ''}</span>
+      </div>
+      <div class="receipt-row">
+        <span class="receipt-key">Date</span>
+        <span class="receipt-val">${dateStr}</span>
+      </div>
+      <div class="receipt-row">
+        <span class="receipt-key">Référence</span>
+        <span class="receipt-val" style="font-size:11px;letter-spacing:1px">${ref}</span>
+      </div>
+    `;
+
+    document.getElementById('step2').classList.add('hidden');
+    document.getElementById('step3').classList.remove('hidden');
+  }
+
+  // ══════════════════════════════════════════
+  // UTILITAIRES
+  // ══════════════════════════════════════════
+  function setStepActive(n) {
+    for (let i = 1; i <= 3; i++) {
+      const dot = document.getElementById('dot' + i);
+      const s   = document.getElementById('s' + i);
+      dot.className = 'step-dot' + (i < n ? ' done' : i === n ? ' active' : '');
+      s.className   = 'step'     + (i < n ? ' done' : i === n ? ' active' : '');
+    }
+    for (let i = 1; i <= 2; i++) {
+      document.getElementById('line' + i).className = 'step-line' + (i < n ? ' done' : '');
+    }
+  }
+
+  function resetToStep1() {
+    currentTenant  = null;
+    monthsCount    = 1;
+    rentAmount     = 0;
+    selectedMethod = 'mtn';
+    document.getElementById('code-input').value = '';
+    document.getElementById('code-hint').className = 'code-hint';
+    document.getElementById('code-hint').textContent = 'Exemple : AB3K7Z';
+    document.getElementById('code-input').classList.remove('error');
+    document.getElementById('phone-input').value = '';
+    document.getElementById('months-count').textContent = '1';
+    document.getElementById('phone-wrap').classList.add('visible');
+    document.querySelectorAll('.method-pill').forEach((p,i) => {
+      p.classList.toggle('selected', i === 0);
     });
-
-    await setDoc(doc(db, 'users', tenant.uid, 'locataires', tenant.tenantId), {
-      statusLabel: 'A jour',
-      balanceLabel: 'Solde à jour',
-      paymentSummary: 'Dernier paiement : ' + fmt(total) + ' FCFA',
-      lastPaymentAt: serverTimestamp()
-    }, { merge: true });
-
-    const total2 = monthlyRent * months;
-    const mLabel = { MTN: 'MTN MoMo', Moov: 'Moov Money', Celtis: 'Celtis Mobile', Banque: 'Virement bancaire' }[method];
-    document.getElementById('successAmount').textContent = fmt(total2) + ' FCFA';
-    document.getElementById('successSub').textContent = (tenant.name || '') + ' · ' + months + ' mois · ' + mLabel;
-    document.getElementById('receiptContent').innerHTML =
-      '✅ Paiement confirmé<br>👤 ' + (tenant.name||'') + '<br>🏠 ' + (tenant.propertyName||'') +
-      ' · Ch.' + (tenant.roomNumber||'') + '<br>💰 ' + fmt(total2) + ' FCFA (' + months + ' mois)<br>📱 ' + mLabel;
-
-    document.getElementById('stepProcessing').classList.add('hidden');
-    document.getElementById('stepSuccess').classList.remove('hidden');
-  } catch(e) {
-    console.warn('Firestore:', e);
-    document.getElementById('stepProcessing').classList.add('hidden');
-    document.getElementById('stepSuccess').classList.remove('hidden');
+    setStepActive(1);
+    document.getElementById('step2').classList.add('hidden');
+    document.getElementById('step3').classList.add('hidden');
+    document.getElementById('step1').classList.remove('hidden');
   }
-};
 
-// ── Copier reçu ──────────────────────────────────────
-window.copyReceipt = () => {
-  const total = monthlyRent * months;
-  const mLabel = { MTN: 'MTN MoMo', Moov: 'Moov Money', Celtis: 'Celtis Mobile', Banque: 'Virement bancaire' }[method] || '';
-  const text = `REÇU DE PAIEMENT\n${'─'.repeat(24)}\nLocataire : ${tenant.name||''}\nCode      : ${tenant.code}\nPropriété : ${tenant.propertyName||''} · Ch.${tenant.roomNumber||''}\nMontant   : ${fmt(total)} FCFA\nMois      : ${months}\nMode      : ${mLabel}\n${'─'.repeat(24)}`;
-  navigator.clipboard.writeText(text).then(() => alert('Reçu copié !')).catch(() => {});
-};
+  function fmtAmount(v) {
+    return v.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  }
 
-// ── Copier coordonnées bancaires ─────────────────────
-window.copyBank = () => {
-  const total = monthlyRent * months;
-  const text = `Banque: BOA Bénin\nTitulaire: Gestion Locative\nN°: BJ0610001234567890123\nRéférence: ${tenant.code}\nMontant: ${fmt(total)} FCFA`;
-  navigator.clipboard.writeText(text).then(() => alert('Copié !')).catch(() => {});
-};
-
-// ── Réinitialiser ────────────────────────────────────
-window.resetCode = () => {
-  tenant = null; months = 1; method = null;
-  document.getElementById('codeInput').value = '';
-  document.getElementById('monthsNum').textContent = '1';
-  document.getElementById('phoneInput').value = '';
-  ['MTN','Moov','Celtis','Banque'].forEach(k => document.getElementById('m_'+k).classList.remove('active'));
-  document.getElementById('btnPay').disabled = true;
-  document.getElementById('headerSub').textContent = 'Saisissez votre code unique';
-  show('stepInfo', 'stepCode');
-};
-
-// ── Utilitaire show ──────────────────────────────────
-function show(hideId, showId) {
-  document.getElementById(hideId).classList.add('hidden');
-  document.getElementById(showId).classList.remove('hidden');
-}
-
-// ── Saisie automatique à 6 caractères ───────────────
-document.getElementById('codeInput').addEventListener('input', e => {
-  e.target.value = e.target.value.toUpperCase();
-  if (e.target.value.length === 6) lookup();
-});
-document.getElementById('codeInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter') lookup();
-});
+  // Appui Entrée sur le champ code
+  document.getElementById('code-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') lookupCode();
+  });
 </script>
 </body>
 </html>

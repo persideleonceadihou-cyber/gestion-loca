@@ -1,1 +1,59 @@
-{"auth":{"providers":{"emailPassword":true}},"firestore":{"rules":"firestore.rules"},"hosting":{"public":"build/web","ignore":["firebase.json","**/.*","**/node_modules/**"],"rewrites":[{"source":"**","destination":"/index.html"}]},"flutter":{"platforms":{"android":{"default":{"projectId":"gestion-loca-66598","appId":"1:392404840141:android:d1450f5a61c6f82e6b8384","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"gestion-loca-66598","configurations":{"android":"1:392404840141:android:d1450f5a61c6f82e6b8384","ios":"1:392404840141:ios:86b9722d34779ad06b8384","web":"1:392404840141:web:b1dcd12480f91d976b8384"}}}}}}
+{
+  "auth": {
+    "providers": {
+      "emailPassword": true
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "gestion-loca-66598",
+          "appId": "1:392404840141:android:d1450f5a61c6f82e6b8384",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "gestion-loca-66598",
+          "configurations": {
+            "android": "1:392404840141:android:d1450f5a61c6f82e6b8384",
+            "ios": "1:392404840141:ios:86b9722d34779ad06b8384",
+            "web": "1:392404840141:web:b1dcd12480f91d976b8384"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    }
+  ]
+}

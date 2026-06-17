@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:gestion_locative/mesBiens.dart';
 import 'package:gestion_locative/conect.dart';
@@ -17,17 +18,19 @@ import 'package:gestion_locative/ajoutMaison.dart';
 import 'package:gestion_locative/ajout.dart';
 import 'package:gestion_locative/Accueil.dart';
 import 'package:gestion_locative/tenant_payment_page.dart';
+import 'package:gestion_locative/services/fcm_service.dart'; // ← ajout
+import 'package:firebase_messaging/firebase_messaging.dart';
+
+// ── Clé globale pour accéder au contexte hors widget ──
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ── Intercepter /pay AVANT le flux d'authentification ──
-  // Sans ça, Flutter redirige vers #/connect et bloque le locataire.
   if (kIsWeb) {
     usePathUrlStrategy();
     final String url = Uri.base.toString();
-    
-    // Intercepter toute variante de /pay ou /payer pour éviter la redirection vers la connexion
+
     if (url.contains('/pay') || url.contains('/payer')) {
       await Firebase.initializeApp(
           options: DefaultFirebaseOptions.currentPlatform);
@@ -49,6 +52,15 @@ void main() async {
 
   await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform);
+
+  // ── Sauvegarder le token FCM si l'utilisateur est connecté ──
+  if (!kIsWeb) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await FcmService.saveToken(user.uid);
+    }
+  }
+
   runApp(const MyApp());
 }
 
@@ -59,6 +71,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      navigatorKey: navigatorKey, // ← ajout
       title: 'Gestion locative',
       theme: ThemeData(
         colorScheme:
@@ -80,6 +93,66 @@ class MyApp extends StatelessWidget {
         '/ajoutLocataire': (context) => const Ajout(),
         '/payeCash': (context) => const PayeCash(),
       },
+      builder: (context, child) {
+        // ── Écouter les notifications FCM ──
+        return _FcmListener(child: child!);
+      },
     );
   }
+}
+
+// ─────────────────────────────────────────────
+// Widget qui écoute les notifications FCM
+// ─────────────────────────────────────────────
+class _FcmListener extends StatefulWidget {
+  final Widget child;
+  const _FcmListener({required this.child});
+
+  @override
+  State<_FcmListener> createState() => _FcmListenerState();
+}
+
+class _FcmListenerState extends State<_FcmListener> {
+  @override
+  void initState() {
+    super.initState();
+    if (!kIsWeb) _initFcm();
+  }
+
+  void _initFcm() {
+    // App au premier plan → snackbar
+    FirebaseMessaging.onMessage.listen((RemoteMessage msg) {
+      final title = msg.notification?.title ?? '';
+      final body  = msg.notification?.body  ?? '';
+
+      ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
+        SnackBar(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title,
+                  style: const TextStyle(fontWeight: FontWeight.w800)),
+              Text(body),
+            ],
+          ),
+          backgroundColor: const Color(0xFF149954),
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    });
+
+    // Tap sur notif depuis le background
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage msg) {
+      if (msg.data['type'] == 'paiement_effectue') {
+        navigatorKey.currentState?.pushNamed('/paiement');
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
