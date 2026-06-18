@@ -42,6 +42,7 @@ class _AjoutState extends State<Ajout> {
   String? _scannedFolderLabel;
   DateTime? _entryDate;
   String? _selectedPropertyId;
+  bool _isSaving = false;
 
   @override
   void dispose() {
@@ -66,7 +67,9 @@ class _AjoutState extends State<Ajout> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_isSaving || !_formKey.currentState!.validate()) return;
+
+    setState(() => _isSaving = true);
 
     final name = _nameController.text.trim();
     final room = _roomController.text.trim().toUpperCase();
@@ -120,7 +123,6 @@ class _AjoutState extends State<Ajout> {
             .collection('locataires')
             .add({...tenantData, 'createdAt': FieldValue.serverTimestamp()});
 
-        // Génère et enregistre le code de paiement unique
         await PaymentCodeService.createForTenant(
           uid: user.uid,
           tenantId: docRef.id,
@@ -129,6 +131,9 @@ class _AjoutState extends State<Ajout> {
       }
 
       if (!mounted) return;
+
+      // ← Remet _isSaving à false AVANT de pop pour éviter le spinner infini
+      setState(() => _isSaving = false);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -174,6 +179,7 @@ class _AjoutState extends State<Ajout> {
       if (mounted) Navigator.of(context).pop(tenantRecord);
     } on FirebaseException catch (e) {
       if (!mounted) return;
+      setState(() => _isSaving = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Erreur: ${e.message ?? "Enregistrement impossible"}'),
@@ -186,6 +192,7 @@ class _AjoutState extends State<Ajout> {
       );
     } catch (_) {
       if (!mounted) return;
+      setState(() => _isSaving = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Enregistrement impossible pour le moment.'),
@@ -567,7 +574,6 @@ class _AjoutState extends State<Ajout> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Statut
                         const Text(
                           'Statut initial',
                           style: TextStyle(
@@ -583,8 +589,14 @@ class _AjoutState extends State<Ajout> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Date d'entrée
-                        const Text('Date d\'entrée', style: TextStyle(color: Color(0xFF607086), fontSize: 12, fontWeight: FontWeight.w600)),
+                        const Text(
+                          'Date d\'entrée',
+                          style: TextStyle(
+                            color: Color(0xFF607086),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         GestureDetector(
                           onTap: () async {
@@ -595,26 +607,41 @@ class _AjoutState extends State<Ajout> {
                               lastDate: DateTime.now(),
                               locale: const Locale('fr'),
                             );
-                            if (picked != null) setState(() => _entryDate = picked);
+                            if (picked != null) {
+                              setState(() => _entryDate = picked);
+                            }
                           },
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 14,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFF0F4FA),
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: const Color(0xFFDDEAF8), width: 1.5),
+                              border: Border.all(
+                                color: const Color(0xFFDDEAF8),
+                                width: 1.5,
+                              ),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.calendar_today_outlined, color: Color(0xFF7D8CA0), size: 20),
+                                const Icon(
+                                  Icons.calendar_today_outlined,
+                                  color: Color(0xFF7D8CA0),
+                                  size: 20,
+                                ),
                                 const SizedBox(width: 10),
                                 Text(
                                   _entryDate != null
-                                      ? '${_entryDate!.day.toString().padLeft(2,'0')}/${_entryDate!.month.toString().padLeft(2,'0')}/${_entryDate!.year}'
+                                      ? '${_entryDate!.day.toString().padLeft(2, '0')}/${_entryDate!.month.toString().padLeft(2, '0')}/${_entryDate!.year}'
                                       : 'Sélectionner la date d\'entrée',
                                   style: TextStyle(
-                                    color: _entryDate != null ? const Color(0xFF132238) : const Color(0xFF7D8CA0),
-                                    fontSize: 14, fontWeight: FontWeight.w600,
+                                    color: _entryDate != null
+                                        ? const Color(0xFF132238)
+                                        : const Color(0xFF7D8CA0),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ],
@@ -742,43 +769,72 @@ class _AjoutState extends State<Ajout> {
 
                   // ── Bouton valider ──
                   GestureDetector(
-                    onTap: _submit,
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 18),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF102A43), Color(0xFF1F6FEB)],
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF1F6FEB).withOpacity(0.30),
-                            blurRadius: 16,
-                            offset: const Offset(0, 8),
+                    onTap: _isSaving ? null : _submit,
+                    child: AnimatedOpacity(
+                      opacity: _isSaving ? 0.7 : 1.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF102A43), Color(0xFF1F6FEB)],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
                           ),
-                        ],
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.person_add_alt_1_outlined,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                          SizedBox(width: 10),
-                          Text(
-                            'Ajouter à la liste',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF1F6FEB).withOpacity(0.30),
+                              blurRadius: 16,
+                              offset: const Offset(0, 8),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
+                        child: _isSaving
+                            ? const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(width: 10),
+                                  Text(
+                                    'Enregistrement...',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.person_add_alt_1_outlined,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                  SizedBox(width: 10),
+                                  Text(
+                                    'Ajouter à la liste',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ],
+                              ),
                       ),
                     ),
                   ),
@@ -794,14 +850,12 @@ class _AjoutState extends State<Ajout> {
   // ── Helpers ──
 
   String? _requiredValidator(String? value) {
-    if (value == null || value.trim().isEmpty)
-      return 'Ce champ est obligatoire';
+    if (value == null || value.trim().isEmpty) return 'Ce champ est obligatoire';
     return null;
   }
 
   String? _emailValidator(String? value) {
-    if (value == null || value.trim().isEmpty)
-      return 'Ce champ est obligatoire';
+    if (value == null || value.trim().isEmpty) return 'Ce champ est obligatoire';
     if (!value.contains('@') || !value.contains('.')) {
       return 'Veuillez saisir un email valide';
     }
@@ -886,7 +940,6 @@ class _SectionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // En-tête section
           Row(
             children: [
               Container(
@@ -1081,10 +1134,16 @@ class _FreePropertyOption {
   factory _FreePropertyOption.fromMap(String id, Map<String, dynamic> map) {
     final priceNumber = map['priceNumber'] is num
         ? (map['priceNumber'] as num).toInt()
-        : _amountFromText(map['price']?.toString() ?? map['rentAmount']?.toString() ?? '');
+        : _amountFromText(
+            map['price']?.toString() ??
+                map['rentAmount']?.toString() ??
+                '',
+          );
     return _FreePropertyOption(
       id: id,
-      title: map['title']?.toString() ?? map['propertyName']?.toString() ?? 'Bien sans nom',
+      title: map['title']?.toString() ??
+          map['propertyName']?.toString() ??
+          'Bien sans nom',
       roomNumber: map['roomNumber']?.toString() ??
           map['rooms']?.toString() ??
           map['chambre']?.toString() ??
