@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:gestion_locative/locataire.dart';
+import 'package:gestion_locative/app_links.dart';
 import 'package:url_launcher/url_launcher.dart';
 // import 'package:gestion_locative/mesBiens.dart';
 // import 'package:gestion_locative/locataire.dart';
@@ -878,11 +879,11 @@ class _PayCashSheetState extends State<_PayCashSheet> {
     // Le code est stocké dans Firestore — on le récupère via tenantId
     // Pour l'instant on utilise tenantId comme fallback dans le lien général
     // Le locataire saisira son code sur la page
-    return 'https://gestionlocaive.netlify.app';
+    return AppLinks.generalPayer();
   }
 
   String _buildGeneralLink() {
-    return 'https://gestionlocaive.netlify.app';
+    return AppLinks.generalPayer();
   }
 
   void _copyLink(String link) {

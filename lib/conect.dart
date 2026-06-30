@@ -123,6 +123,10 @@ class _ConnectState extends State<Connect> with SingleTickerProviderStateMixin {
       final name =
           _auth.currentUser?.displayName ??
           _emailController.text.split('@').first;
+      await _syncUserProfile(
+        displayName: name,
+        email: _emailController.text.trim().toLowerCase(),
+      );
       _showSnack('Connexion réussie ✅');
       _goToAcceuil(name);
       // _goToAcceuil(name);
@@ -140,21 +144,40 @@ class _ConnectState extends State<Connect> with SingleTickerProviderStateMixin {
       final displayName =
           '${_prenomController.text.trim()} ${_nomController.text.trim()}';
       await cred.user?.updateDisplayName(displayName);
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(cred.user!.uid)
-          .set({
-            'displayName': displayName,
-            'email': _emailController.text.trim().toLowerCase(),
-            'phone': _phoneController.text.trim(),
-            'role': _role,
-            'createdAt': FieldValue.serverTimestamp(),
-          }, SetOptions(merge: true));
+      await _syncUserProfile(
+        displayName: displayName,
+        email: _emailController.text.trim().toLowerCase(),
+        phone: _phoneController.text.trim(),
+        role: _role,
+        createdAt: true,
+      );
       _showSnack('Inscription réussie 🎉');
       _goToAcceuil(displayName);
       // _goToDashboard(displayName);
     } on FirebaseAuthException catch (e) {
       _showSnack(_authMessage(e));
+    }
+  }
+
+  Future<void> _sendPasswordReset() async {
+    final email = _emailController.text.trim().toLowerCase();
+    if (email.isEmpty) {
+      await _showError('Entre ton adresse email pour recevoir le lien.');
+      return;
+    }
+    final emailError = _emailValidator(email);
+    if (emailError != null) {
+      await _showError('Adresse email invalide.');
+      return;
+    }
+
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+      if (!mounted) return;
+      _showSnack('Lien de réinitialisation envoyé à $email');
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      await _showError(_authMessage(e));
     }
   }
 
@@ -183,6 +206,38 @@ class _ConnectState extends State<Connect> with SingleTickerProviderStateMixin {
 
   void _showSnack(String msg) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+
+  Future<void> _syncUserProfile({
+    required String displayName,
+    required String email,
+    String? phone,
+    String? role,
+    bool createdAt = false,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    final payload = <String, dynamic>{
+      'displayName': displayName.trim(),
+      'email': email.trim().toLowerCase(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+
+    if (phone != null && phone.trim().isNotEmpty) {
+      payload['phone'] = phone.trim();
+    }
+    if (role != null && role.trim().isNotEmpty) {
+      payload['role'] = role.trim();
+    }
+    if (createdAt) {
+      payload['createdAt'] = FieldValue.serverTimestamp();
+    }
+
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .set(payload, SetOptions(merge: true));
+  }
 
   Future<void> _showError(String msg) async {
     await showDialog<void>(
@@ -455,9 +510,7 @@ class _ConnectState extends State<Connect> with SingleTickerProviderStateMixin {
               if (_showLogin) ...[
                 Center(
                   child: TextButton(
-                    onPressed: () {
-                      /* reset password */
-                    },
+                    onPressed: _sendPasswordReset,
                     child: const Text(
                       'Mot de passe oublié?',
                       style: TextStyle(

@@ -83,6 +83,9 @@ class _AjoutMaisonState extends State<AjoutMaison> {
 
       if (!mounted) return;
 
+      // ← Remet _isSaving à false AVANT de pop pour éviter le spinner infini
+      setState(() => _isSaving = false);
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${_titleController.text.trim()} ajouté avec succès !'),
@@ -94,21 +97,20 @@ class _AjoutMaisonState extends State<AjoutMaison> {
         ),
       );
 
-      // Attendre un court délai avant de fermer pour que le snackbar s'affiche
       await Future.delayed(const Duration(milliseconds: 500));
       if (mounted) {
         Navigator.pop(context, propertyData);
       }
     } on FirebaseException catch (e) {
       if (mounted) {
+        setState(() => _isSaving = false);
         _showSaveError(e.message ?? 'Enregistrement impossible.');
       }
     } catch (e) {
       if (mounted) {
+        setState(() => _isSaving = false);
         _showSaveError('Erreur: ${e.toString()}');
       }
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
     }
   }
 

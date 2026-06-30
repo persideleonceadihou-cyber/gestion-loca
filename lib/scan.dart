@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:document_scanner_flutter/configs/configs.dart';
 import 'package:document_scanner_flutter/document_scanner_flutter.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:gestion_locative/app_background.dart';
 
@@ -16,6 +17,7 @@ class _ScanState extends State<Scan> with SingleTickerProviderStateMixin {
   late final AnimationController _scanController;
   File? _scannedImage;
   bool _isScanning = false;
+  bool _scanFailed = false;
   String? _scanError;
 
   @override
@@ -37,6 +39,7 @@ class _ScanState extends State<Scan> with SingleTickerProviderStateMixin {
     setState(() {
       _isScanning = true;
       _scanError = null;
+      _scanFailed = false;
     });
 
     try {
@@ -58,36 +61,55 @@ class _ScanState extends State<Scan> with SingleTickerProviderStateMixin {
         },
       );
 
-      if (file == null || !mounted) {
-        return;
-      }
+      if (file == null || !mounted) return;
 
       setState(() {
         _scannedImage = file;
       });
     } catch (error) {
-      if (!mounted) {
+      if (!mounted) return;
+      setState(() {
+        _scanError = 'Scanner indisponible. Vous pouvez importer un fichier.';
+        _scanFailed = true;
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isScanning = false);
+      }
+    }
+  }
+
+  Future<void> _pickFile() async {
+    setState(() {
+      _scanError = null;
+    });
+
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+      );
+
+      if (result == null || result.files.single.path == null || !mounted) {
         return;
       }
 
       setState(() {
-        _scanError = 'Impossible de lancer le scanner: $error';
+        _scannedImage = File(result.files.single.path!);
+        _scanFailed = false;
+        _scanError = null;
       });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isScanning = false;
-        });
-      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _scanError = 'Impossible d\'ouvrir le fichier: $e';
+      });
     }
   }
 
   void _validateScan() {
     final file = _scannedImage;
-    if (file == null) {
-      return;
-    }
-
+    if (file == null) return;
     Navigator.pop(context, 'Document scanne: ${file.path}');
   }
 
@@ -95,6 +117,7 @@ class _ScanState extends State<Scan> with SingleTickerProviderStateMixin {
     setState(() {
       _scannedImage = null;
       _scanError = null;
+      _scanFailed = false;
     });
   }
 
@@ -137,9 +160,11 @@ class _ScanState extends State<Scan> with SingleTickerProviderStateMixin {
                     _ScanActionPanel(
                       hasScan: hasScan,
                       isScanning: _isScanning,
+                      scanFailed: _scanFailed,
                       onScan: _scanDocument,
                       onValidate: _validateScan,
                       onReset: _resetScan,
+                      onPickFile: _pickFile,
                     ),
                     const SizedBox(height: 16),
                     if (_scanError != null)
@@ -445,16 +470,20 @@ class _ScannerCornerPainter extends CustomPainter {
 class _ScanActionPanel extends StatelessWidget {
   final bool hasScan;
   final bool isScanning;
+  final bool scanFailed;
   final VoidCallback onScan;
   final VoidCallback onValidate;
   final VoidCallback onReset;
+  final VoidCallback onPickFile;
 
   const _ScanActionPanel({
     required this.hasScan,
     required this.isScanning,
+    required this.scanFailed,
     required this.onScan,
     required this.onValidate,
     required this.onReset,
+    required this.onPickFile,
   });
 
   @override
@@ -498,6 +527,28 @@ class _ScanActionPanel extends StatelessWidget {
               ),
             ),
           ),
+          if (scanFailed && !hasScan) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onPickFile,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF2B7FFF),
+                  side: const BorderSide(color: Color(0xFF2B7FFF)),
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                ),
+                icon: const Icon(Icons.upload_file_outlined),
+                label: const Text(
+                  'Importer depuis l\'appareil',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+            ),
+          ],
           if (hasScan) ...[
             const SizedBox(height: 12),
             Row(

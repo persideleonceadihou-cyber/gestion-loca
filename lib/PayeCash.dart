@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:gestion_locative/app_links.dart';
 
 class PayeCash extends StatefulWidget {
   const PayeCash({super.key});
@@ -29,12 +30,7 @@ class _PayeCashState extends State<PayeCash> {
 
   // ── Génère le lien de paiement via code unique ──
   String _paymentLink(TenantRecord tenant) {
-    final code = tenant.paymentCode;
-    if (code.isNotEmpty) {
-      return 'https://gestionlocatives.netlify.app/payer?code=$code';
-    }
-    // Fallback si code pas encore généré
-    return 'https://gestionlocatives.netlify.app/payer';
+    return AppLinks.payer(tenant.paymentCode);
   }
 
 
@@ -52,7 +48,7 @@ class _PayeCashState extends State<PayeCash> {
 
   // Lien général — le locataire saisira son code sur la page
   String _generalLink() {
-    return 'https://gestionlocatives.netlify.app/payer';
+    return AppLinks.generalPayer();
   }
 
   void _copyGeneralLink() {

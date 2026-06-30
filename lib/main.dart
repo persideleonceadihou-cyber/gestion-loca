@@ -24,6 +24,43 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 // ── Clé globale pour accéder au contexte hors widget ──
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
+ThemeData _buildAppTheme() {
+  const navy = Color(0xFF1A2B5E);
+  const bgPage = Color(0xFFF5F0E8);
+  const cream = Color(0xFFF2C94C);
+
+  final colorScheme = ColorScheme.fromSeed(
+    seedColor: navy,
+    brightness: Brightness.light,
+  ).copyWith(
+    primary: navy,
+    secondary: cream,
+    surface: Colors.white,
+    error: const Color(0xFF993C1D),
+  );
+
+  return ThemeData(
+    colorScheme: colorScheme,
+    scaffoldBackgroundColor: bgPage,
+    appBarTheme: const AppBarTheme(
+      backgroundColor: navy,
+      foregroundColor: Colors.white,
+      elevation: 0,
+    ),
+    cardTheme: const CardThemeData(
+      color: Colors.white,
+      surfaceTintColor: Colors.transparent,
+    ),
+    snackBarTheme: SnackBarThemeData(
+      backgroundColor: const Color(0xFF149954),
+      contentTextStyle: const TextStyle(color: Colors.white),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    ),
+    useMaterial3: true,
+  );
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -37,11 +74,7 @@ void main() async {
       runApp(MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Paiement Loyer',
-        theme: ThemeData(
-          colorScheme:
-              ColorScheme.fromSeed(seedColor: const Color(0xFF1F6FEB)),
-          useMaterial3: true,
-        ),
+        theme: _buildAppTheme(),
         home: TenantPaymentPage(
           code: Uri.base.queryParameters['code'] ?? '',
         ),
@@ -73,11 +106,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       navigatorKey: navigatorKey, // ← ajout
       title: 'Gestion locative',
-      theme: ThemeData(
-        colorScheme:
-            ColorScheme.fromSeed(seedColor: const Color(0xFF1F6FEB)),
-        useMaterial3: true,
-      ),
+      theme: _buildAppTheme(),
       home: const Home(),
       routes: {
         '/connect': (context) => const Connect(),

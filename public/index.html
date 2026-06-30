@@ -8,7 +8,7 @@
     .hidden { display: none; }
     .card { border: 1px solid #ccc; padding: 15px; border-radius: 8px; margin-top: 20px; }
     button { padding: 10px 20px; margin: 10px; border: none; border-radius: 5px; cursor: pointer; }
-    .bank { background: red; color: white; }
+    .bank { background: #1A2B5E; color: white; }
     .momo { background: yellow; }
     .moov { background: blue; color: white; }
     .celtis { background: green; color: white; }
@@ -50,7 +50,7 @@
 
       const data = locataires[room];
       if (!data) {
-        resultSection.innerHTML = "<p style='color:red'>Aucun locataire trouvé pour la chambre " + room + "</p>";
+        resultSection.innerHTML = "<p style='color:#854F0B'>Aucun locataire trouvé pour la chambre " + room + "</p>";
       } else {
         resultSection.classList.remove('hidden');
         resultSection.innerHTML = `

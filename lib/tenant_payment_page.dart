@@ -3,7 +3,7 @@
 // Ses informations s'affichent automatiquement.
 // Il choisit le nombre de mois et paie via mobile money ou virement.
 //
-// URL : https://gestionlocatives.netlify.app/payer
+// URL : https://gestion-locat.netlify.app/payer
 // Avec code pré-rempli : /payer?code=XXXXXX
 
 import 'package:flutter/material.dart';
