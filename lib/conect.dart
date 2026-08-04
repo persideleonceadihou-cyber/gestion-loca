@@ -12,7 +12,7 @@ class AppColors {
   // Couleurs principales
   static const navy = Color(0xFF1A2B5E); // fond header, texte titre
   static const navyDark = Color(0xFF132040); // variante sombre
-  static const cream = Color(0xFFF2C94C); // bouton principal, logo circle
+  static const cream = Color.fromARGB(255, 228, 228, 225); // bouton principal, logo circle
   static const creamLight = Color(0xFFFDF6DC); // fond général, champs input
   static const creamBorder = Color(0xFFE8C84A); // bordure champs actifs
 
@@ -116,17 +116,13 @@ class _ConnectState extends State<Connect> with SingleTickerProviderStateMixin {
 
   Future<void> _handleLogin() async {
     try {
+      final email = _normalizedEmail;
       await _auth.signInWithEmailAndPassword(
-        email: _emailController.text.trim().toLowerCase(),
+        email: email,
         password: _passwordController.text.trim(),
       );
-      final name =
-          _auth.currentUser?.displayName ??
-          _emailController.text.split('@').first;
-      await _syncUserProfile(
-        displayName: name,
-        email: _emailController.text.trim().toLowerCase(),
-      );
+      final name = _auth.currentUser?.displayName ?? email.split('@').first;
+      await _syncUserProfile(displayName: name, email: email);
       _showSnack('Connexion réussie ✅');
       _goToAcceuil(name);
       // _goToAcceuil(name);
@@ -137,8 +133,14 @@ class _ConnectState extends State<Connect> with SingleTickerProviderStateMixin {
 
   Future<void> _handleRegister() async {
     try {
+      final existingUser = _auth.currentUser;
+      if (existingUser != null) {
+        await _auth.signOut();
+      }
+
+      final email = _normalizedEmail;
       final cred = await _auth.createUserWithEmailAndPassword(
-        email: _emailController.text.trim().toLowerCase(),
+        email: email,
         password: _passwordController.text.trim(),
       );
       final displayName =
@@ -146,7 +148,7 @@ class _ConnectState extends State<Connect> with SingleTickerProviderStateMixin {
       await cred.user?.updateDisplayName(displayName);
       await _syncUserProfile(
         displayName: displayName,
-        email: _emailController.text.trim().toLowerCase(),
+        email: email,
         phone: _phoneController.text.trim(),
         role: _role,
         createdAt: true,
@@ -155,7 +157,35 @@ class _ConnectState extends State<Connect> with SingleTickerProviderStateMixin {
       _goToAcceuil(displayName);
       // _goToDashboard(displayName);
     } on FirebaseAuthException catch (e) {
-      _showSnack(_authMessage(e));
+      if (e.code == 'email-already-in-use') {
+        await _handleExistingAccountRegister();
+        return;
+      }
+      await _showError(_authMessage(e));
+    }
+  }
+
+  Future<void> _handleExistingAccountRegister() async {
+    try {
+      final email = _normalizedEmail;
+      await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: _passwordController.text.trim(),
+      );
+      final displayName =
+          '${_prenomController.text.trim()} ${_nomController.text.trim()}'
+              .trim();
+      await _auth.currentUser?.updateDisplayName(displayName);
+      await _syncUserProfile(
+        displayName: displayName,
+        email: email,
+        phone: _phoneController.text.trim(),
+        role: _role,
+      );
+      _showSnack('Compte existant retrouvé, connexion réussie ✅');
+      _goToAcceuil(displayName);
+    } on FirebaseAuthException catch (e) {
+      await _showError(_authMessage(e));
     }
   }
 
@@ -306,12 +336,12 @@ class _ConnectState extends State<Connect> with SingleTickerProviderStateMixin {
       padding: const EdgeInsets.fromLTRB(24, 48, 24, 28),
       child: Column(
         children: [
-          // Cercle jaune avec logo
+          // Cercle blanc avec logo
           Container(
             width: 90,
             height: 90,
             decoration: const BoxDecoration(
-              color: AppColors.cream,
+              color: Colors.white,
               shape: BoxShape.circle,
             ),
             child: Center(
@@ -707,4 +737,6 @@ class _ConnectState extends State<Connect> with SingleTickerProviderStateMixin {
     }
     return null;
   }
+
+  String get _normalizedEmail => _emailController.text.trim().toLowerCase();
 }

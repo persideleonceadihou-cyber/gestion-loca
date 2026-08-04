@@ -72,28 +72,32 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
     });
 
     // ── Redirection intelligente selon l'état de connexion ──
-    Future.delayed(const Duration(seconds: 3), () {
-      if (!mounted) return;
+    _redirectAfterSplash();
+  }
 
-      final user = FirebaseAuth.instance.currentUser;
+  Future<void> _redirectAfterSplash() async {
+    await Future.delayed(const Duration(seconds: 3));
+    if (!mounted) return;
 
-      if (user != null) {
-        // Utilisateur déjà connecté → on va directement à l'accueil
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => Accueil(
-              userName: user.displayName ??
-                  user.email?.split('@').first ??
-                  'Utilisateur',
-            ),
+    final user = await FirebaseAuth.instance.authStateChanges().first;
+    if (!mounted) return;
+
+    if (user != null) {
+      // Utilisateur déjà connecté → on va directement à l'accueil
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => Accueil(
+            userName: user.displayName ??
+                user.email?.split('@').first ??
+                'Utilisateur',
           ),
-        );
-      } else {
-        // Pas connecté → on va à la page de connexion
-        Navigator.pushReplacementNamed(context, '/connect');
-      }
-    });
+        ),
+      );
+    } else {
+      // Pas connecté → on va à la page de connexion
+      Navigator.pushReplacementNamed(context, '/connect');
+    }
   }
 
   @override
@@ -183,13 +187,21 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                color: const Color(0xFFF2C94C),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(18),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x22000000),
+                    blurRadius: 12,
+                    offset: Offset(0, 4),
+                  ),
+                ],
               ),
               child: const Image(
-                image: AssetImage('assets/images/logo (2).png'),
-                width: 32,
-                height: 32,
+                image: AssetImage('assets/images/logo_launcher.png'),
+                width: 40,
+                height: 40,
+                fit: BoxFit.contain,
               ),
             ),
           ),

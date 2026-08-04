@@ -32,9 +32,22 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.13.1
 
+flutter_launcher_icons:
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  web:
+    generate: true
+    image_path: "assets/images/logo_launcher.png"
+    background_color: "#FFFFFF"
+    theme_color: "#FFFFFF"
+  image_path: "assets/images/logo_launcher.png"
+  min_sdk_android: 21
+
 flutter:
   uses-material-design: true
   assets:
+    - assets/images/logo_launcher.png
     - assets/images/logo (2).png
     - assets/images/image1 (2).jpg
     - assets/images/img (2).jpg
