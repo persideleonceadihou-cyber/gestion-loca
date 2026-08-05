@@ -1,11 +1,14 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:gestion_locative/app_background.dart';
 
 class _C {
   static const navy = Color(0xFF1A2B5E);
-  static const cream = Color(0xFFF2C94C);
   static const creamLight = Color(0xFFFDF6DC);
   static const bgPage = Color(0xFFF5F0E8);
   static const white = Color(0xFFFFFFFF);
@@ -32,6 +35,9 @@ class _AjoutMaisonState extends State<AjoutMaison> {
   final _descController = TextEditingController();
   final _roomsController = TextEditingController();
 
+  final ImagePicker _picker = ImagePicker();
+  XFile? _selectedImage;
+
   String _selectedEtat = 'Disponible';
   String _selectedType = 'Maison';
   bool _isSaving = false;
@@ -46,44 +52,63 @@ class _AjoutMaisonState extends State<AjoutMaison> {
     super.dispose();
   }
 
+  Future<void> _pickImage() async {
+    final pickedFile = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70,
+    );
+
+    if (!mounted || pickedFile == null) return;
+
+    setState(() => _selectedImage = pickedFile);
+  }
+
   Future<void> _submit() async {
     if (_isSaving || !_formKey.currentState!.validate()) return;
 
     setState(() => _isSaving = true);
 
-    final price =
-        int.tryParse(_priceController.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
-        0;
-    final propertyData = {
-      'title': _titleController.text.trim(),
-      'location': _addressController.text.trim(),
-      'type': _selectedType,
-      'price': '${_priceController.text.trim()} FCFA',
-      'priceNumber': price,
-      'rooms': _roomsController.text.trim(),
-      'description': _descController.text.trim(),
-      'status': _selectedEtat,
-      'isRented': _selectedEtat.toLowerCase().contains('lou'),
-      'image': 'assets/images/img.jpeg',
-    };
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      _showSaveError('Vous devez être connecté pour ajouter un bien.');
+      if (mounted) setState(() => _isSaving = false);
+      return;
+    }
 
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        _showSaveError('Vous devez être connecté pour ajouter un bien.');
-        if (mounted) setState(() => _isSaving = false);
-        return;
+      final price =
+          int.tryParse(_priceController.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+          0;
+
+      String? imageBase64;
+      if (_selectedImage != null) {
+        final bytes = await _selectedImage!.readAsBytes();
+        imageBase64 = base64Encode(bytes);
       }
+
+      final propertyData = {
+        'title': _titleController.text.trim(),
+        'location': _addressController.text.trim(),
+        'type': _selectedType,
+        'price': '${_priceController.text.trim()} FCFA',
+        'priceNumber': price,
+        'rooms': _roomsController.text.trim(),
+        'description': _descController.text.trim(),
+        'status': _selectedEtat,
+        'isRented': _selectedEtat.toLowerCase().contains('lou'),
+        'image': 'assets/images/img.jpeg',
+        'imageBase64': imageBase64 ?? '',
+        'createdAt': Timestamp.now(),
+      };
 
       await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .collection('biens')
-          .add({...propertyData, 'createdAt': FieldValue.serverTimestamp()});
+          .add(propertyData);
 
       if (!mounted) return;
 
-      // ← Remet _isSaving à false AVANT de pop pour éviter le spinner infini
       setState(() => _isSaving = false);
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -236,6 +261,7 @@ class _AjoutMaisonState extends State<AjoutMaison> {
                                 hint: 'Ex : 4',
                                 icon: Icons.meeting_room_outlined,
                                 keyboardType: TextInputType.number,
+                                validator: _required,
                               ),
                             ),
                           ],
@@ -252,10 +278,60 @@ class _AjoutMaisonState extends State<AjoutMaison> {
                         _Field(
                           controller: _descController,
                           label: 'Description',
-                          hint: 'Eau courante, compteur, acces...',
+                          hint: 'Eau courante, compteur, accès...',
                           icon: Icons.notes_rounded,
                           maxLines: 3,
                         ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _SectionCard(
+                    icon: Icons.image_outlined,
+                    iconColor: _C.navy,
+                    title: 'Image du bien',
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: _pickImage,
+                            icon: const Icon(Icons.photo_library_outlined),
+                            label: const Text('Choisir une image'),
+                          ),
+                        ),
+                        if (_selectedImage != null) ...[
+                          const SizedBox(height: 10),
+                          FutureBuilder<Uint8List>(
+                            future: _selectedImage!.readAsBytes(),
+                            builder: (context, snapshot) {
+                              if (!snapshot.hasData) {
+                                return Container(
+                                  height: 150,
+                                  width: double.infinity,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: _C.creamLight,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: _C.border),
+                                  ),
+                                  child: const CircularProgressIndicator(),
+                                );
+                              }
+
+                              return ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.memory(
+                                  snapshot.data!,
+                                  height: 150,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ],
                     ),
                   ),
