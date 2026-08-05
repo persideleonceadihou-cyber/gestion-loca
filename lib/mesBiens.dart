@@ -110,6 +110,25 @@ class _MesBiensState extends State<MesBiens> {
   _PropertyFilter _filter = _PropertyFilter.all;
   final List<_Property> _localProperties = List.of(_properties);
   String _query = '';
+  String? _activeUserId;
+  Stream<QuerySnapshot>? _biensStream;
+  Stream<QuerySnapshot>? _locatairesStream;
+
+  void _ensureStreams(String userId) {
+    if (_activeUserId == userId &&
+        _biensStream != null &&
+        _locatairesStream != null) {
+      return;
+    }
+
+    final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
+    _activeUserId = userId;
+    _biensStream = userRef
+        .collection('biens')
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+    _locatairesStream = userRef.collection('locataires').snapshots();
+  }
 
   List<_Property> _filterProperties(List<_Property> properties) {
     return properties.where((property) {
@@ -166,21 +185,40 @@ class _MesBiensState extends State<MesBiens> {
       return _propertiesContent(_localProperties, 9, demoTotal);
     }
 
+    _ensureStreams(user.uid);
+
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('biens')
-          .orderBy('createdAt', descending: true)
-          .snapshots(),
+      stream: _biensStream,
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                'Erreur de chargement des biens.\n${snapshot.error}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: _C.textMuted),
+              ),
+            ),
+          );
+        }
+
         return StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .collection('locataires')
-              .snapshots(),
+          stream: _locatairesStream,
           builder: (context, tenantSnapshot) {
+            if (tenantSnapshot.hasError) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Text(
+                    'Erreur de chargement des locataires.\n${tenantSnapshot.error}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: _C.textMuted),
+                  ),
+                ),
+              );
+            }
+
             final properties = snapshot.hasData
                 ? snapshot.data!.docs
                       .map(
