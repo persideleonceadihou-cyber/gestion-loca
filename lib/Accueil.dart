@@ -14,10 +14,8 @@ import 'package:gestion_locative/profil.dart';
 // ─────────────────────────────────────────────
 class _C {
   static const navy = Color(0xFF1A2B5E);
-  static const cream = Color(0xFFF2C94C);
   static const creamLight = Color(0xFFFDF6DC);
   static const bgPage = Color(0xFFF5F0E8); // fond général (beige chaud)
-  static const bgSection = Color(0xFFFAF6EE); // fond des sections blanches
   static const white = Color(0xFFFFFFFF);
   static const textMain = Color(0xFF1A2B5E);
   static const textMuted = Color(0xFF7A6F52);
@@ -289,9 +287,9 @@ class _AccueilState extends State<Accueil> {
                 .where((map) => map['isRented'] != true)
                 .map(_freePropertyFromMap)
                 .toList();
-            final rentTotal = propertyDocs.fold<int>(0, (sum, doc) {
+            final rentTotal = propertyDocs.fold<int>(0, (total, doc) {
               final map = doc.data() as Map<String, dynamic>;
-              return sum + _amountFrom(map['priceNumber'] ?? map['price']);
+              return total + _amountFrom(map['priceNumber'] ?? map['price']);
             });
 
             return _buildAccueilContent(

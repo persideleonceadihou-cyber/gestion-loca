@@ -2,36 +2,32 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
     match /users/{userId} {
-      allow create, read, update: if request.auth != null
-        && request.auth.uid == userId;
+      allow create, read, update: if isOwner(userId);
       allow delete: if false;
 
       match /tenants/{tenantId} {
-        allow create, read, update, delete: if request.auth != null
-          && request.auth.uid == userId;
+        allow create, read, update, delete: if isOwner(userId);
       }
 
       match /locataires/{locataireId} {
-        // Admin : accès complet
-        allow create, delete: if request.auth != null && request.auth.uid == userId;
-        // Lecture publique : nécessaire pour la page de paiement partagée
-        allow read: if true;
-        // Mise à jour publique limitée aux champs de paiement uniquement
-        allow update: if (request.auth != null && request.auth.uid == userId)
-          || request.resource.data.diff(resource.data).affectedKeys()
-               .hasOnly(['statusLabel', 'statusColor', 'balanceLabel', 'paymentSummary', 'lastPaymentAt']);
+        allow create, read, update, delete: if isOwner(userId);
       }
 
       match /biens/{bienId} {
-        allow create, read, update, delete: if request.auth != null
-          && request.auth.uid == userId;
+        allow create, read, update, delete: if isOwner(userId);
       }
 
-      // Collection paiements : accessible publiquement en création (lien partagé)
       match /paiements/{paiementId} {
-        allow read, update, delete: if request.auth != null && request.auth.uid == userId;
-        allow create: if true;
+        allow create, read, update, delete: if isOwner(userId);
       }
     }
 
@@ -39,7 +35,7 @@ service cloud.firestore {
     // Lecture publique pour lookup par code, écriture réservée aux admins authentifiés
     match /payment_codes/{code} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if signedIn();
     }
   }
 }

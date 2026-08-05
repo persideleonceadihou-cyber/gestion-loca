@@ -79,7 +79,7 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
     await Future.delayed(const Duration(seconds: 3));
     if (!mounted) return;
 
-    final user = await FirebaseAuth.instance.authStateChanges().first;
+    final user = FirebaseAuth.instance.currentUser;
     if (!mounted) return;
 
     if (user != null) {

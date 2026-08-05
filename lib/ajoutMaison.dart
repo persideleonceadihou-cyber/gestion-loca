@@ -1,11 +1,10 @@
-import 'dart:convert';
 import 'dart:typed_data';
-
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:gestion_locative/app_background.dart';
+import 'package:image_picker/image_picker.dart';
 
 class _C {
   static const navy = Color(0xFF1A2B5E);
@@ -35,72 +34,79 @@ class _AjoutMaisonState extends State<AjoutMaison> {
   final _descController = TextEditingController();
   final _roomsController = TextEditingController();
 
-  final ImagePicker _picker = ImagePicker();
-  XFile? _selectedImage;
-
   String _selectedEtat = 'Disponible';
   String _selectedType = 'Maison';
   bool _isSaving = false;
 
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _priceController.dispose();
-    _addressController.dispose();
-    _descController.dispose();
-    _roomsController.dispose();
-    super.dispose();
-  }
+  // 👉 Variables pour l’image
+  Uint8List? _selectedImageBytes;
+  String? _selectedImageName;
+  final ImagePicker _picker = ImagePicker();
 
   Future<void> _pickImage() async {
     final pickedFile = await _picker.pickImage(
       source: ImageSource.gallery,
       imageQuality: 70,
     );
+    if (pickedFile != null) {
+      final bytes = await pickedFile.readAsBytes();
+      if (!mounted) return;
+      setState(() {
+        _selectedImageBytes = bytes;
+        _selectedImageName = pickedFile.name;
+      });
+    }
+  }
 
-    if (!mounted || pickedFile == null) return;
-
-    setState(() => _selectedImage = pickedFile);
+  Future<String?> _uploadImage(Uint8List imageBytes, String userId) async {
+    final fileName =
+        _selectedImageName ?? '${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final ref = FirebaseStorage.instance.ref().child(
+      'users/$userId/biens/$fileName',
+    );
+    await ref.putData(
+      imageBytes,
+      SettableMetadata(contentType: 'image/jpeg'),
+    );
+    return ref.getDownloadURL();
   }
 
   Future<void> _submit() async {
     if (_isSaving || !_formKey.currentState!.validate()) return;
-
     setState(() => _isSaving = true);
+
+    final price = int.tryParse(
+      _priceController.text.replaceAll(RegExp(r'[^0-9]'), ''),
+    ) ?? 0;
 
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       _showSaveError('Vous devez être connecté pour ajouter un bien.');
-      if (mounted) setState(() => _isSaving = false);
+      setState(() => _isSaving = false);
       return;
     }
 
+    // Upload image si sélectionnée
+    String? imageUrl;
+    if (_selectedImageBytes != null) {
+      imageUrl = await _uploadImage(_selectedImageBytes!, user.uid);
+    }
+
+    final propertyData = {
+      'title': _titleController.text.trim(),
+      'location': _addressController.text.trim(),
+      'type': _selectedType,
+      'price': '${_priceController.text.trim()} FCFA',
+      'priceNumber': price,
+      'rooms': _roomsController.text.trim(),
+      'description': _descController.text.trim(),
+      'status': _selectedEtat,
+      'isRented': _selectedEtat.toLowerCase().contains('lou'),
+      'image': imageUrl ?? '',
+      'createdAt': Timestamp.now(),
+    };
+
     try {
-      final price =
-          int.tryParse(_priceController.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
-          0;
-
-      String? imageBase64;
-      if (_selectedImage != null) {
-        final bytes = await _selectedImage!.readAsBytes();
-        imageBase64 = base64Encode(bytes);
-      }
-
-      final propertyData = {
-        'title': _titleController.text.trim(),
-        'location': _addressController.text.trim(),
-        'type': _selectedType,
-        'price': '${_priceController.text.trim()} FCFA',
-        'priceNumber': price,
-        'rooms': _roomsController.text.trim(),
-        'description': _descController.text.trim(),
-        'status': _selectedEtat,
-        'isRented': _selectedEtat.toLowerCase().contains('lou'),
-        'image': 'assets/images/img.jpeg',
-        'imageBase64': imageBase64 ?? '',
-        'createdAt': Timestamp.now(),
-      };
-
       await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
@@ -108,36 +114,21 @@ class _AjoutMaisonState extends State<AjoutMaison> {
           .add(propertyData);
 
       if (!mounted) return;
-
       setState(() => _isSaving = false);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${_titleController.text.trim()} ajouté avec succès !'),
           backgroundColor: _C.success,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
         ),
       );
 
-      await Future.delayed(const Duration(milliseconds: 500));
-      if (mounted) {
-        Navigator.pop(context, propertyData);
-      }
-    } on FirebaseException catch (e) {
-      if (mounted) {
-        setState(() => _isSaving = false);
-        _showSaveError(
-          'Code Firebase: ${e.code}\n${e.message ?? "Enregistrement impossible."}',
-        );
-      }
+      if (!mounted) return;
+      Navigator.pop(context, propertyData);
     } catch (e) {
-      if (mounted) {
-        setState(() => _isSaving = false);
-        _showSaveError('Erreur: ${e.toString()}');
-      }
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      _showSaveError('Erreur: ${e.toString()}');
     }
   }
 
@@ -147,8 +138,6 @@ class _AjoutMaisonState extends State<AjoutMaison> {
       SnackBar(
         content: Text(message),
         backgroundColor: _C.danger,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -160,20 +149,14 @@ class _AjoutMaisonState extends State<AjoutMaison> {
       appBar: AppBar(
         backgroundColor: _C.navy,
         foregroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
         elevation: 0,
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              'Ajouter un bien',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-            ),
-            Text(
-              'Nouveau bien immobilier',
-              style: TextStyle(fontSize: 12, color: Color(0xFFD0D8F0)),
-            ),
+            Text('Ajouter un bien',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+            Text('Nouveau bien immobilier',
+                style: TextStyle(fontSize: 12, color: Color(0xFFD0D8F0))),
           ],
         ),
       ),
@@ -186,36 +169,6 @@ class _AjoutMaisonState extends State<AjoutMaison> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: _C.navy,
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Nouveau bien immobilier',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          'Renseignez les informations du bien pour le suivre dans votre tableau de bord.',
-                          style: TextStyle(
-                            color: Color(0xFFFDF6DC),
-                            height: 1.4,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
                   _SectionCard(
                     icon: Icons.home_work_outlined,
                     iconColor: _C.navy,
@@ -291,47 +244,22 @@ class _AjoutMaisonState extends State<AjoutMaison> {
                     iconColor: _C.navy,
                     title: 'Image du bien',
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: _pickImage,
-                            icon: const Icon(Icons.photo_library_outlined),
-                            label: const Text('Choisir une image'),
-                          ),
+                        ElevatedButton(
+                          onPressed: _pickImage,
+                          child: const Text("Choisir une image"),
                         ),
-                        if (_selectedImage != null) ...[
-                          const SizedBox(height: 10),
-                          FutureBuilder<Uint8List>(
-                            future: _selectedImage!.readAsBytes(),
-                            builder: (context, snapshot) {
-                              if (!snapshot.hasData) {
-                                return Container(
-                                  height: 150,
-                                  width: double.infinity,
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                    color: _C.creamLight,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: _C.border),
-                                  ),
-                                  child: const CircularProgressIndicator(),
-                                );
-                              }
-
-                              return ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Image.memory(
-                                  snapshot.data!,
-                                  height: 150,
-                                  width: double.infinity,
-                                  fit: BoxFit.cover,
-                                ),
-                              );
-                            },
+                        const SizedBox(height: 10),
+                        if (_selectedImageBytes != null)
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.memory(
+                              _selectedImageBytes!,
+                              height: 150,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                            ),
                           ),
-                        ],
                       ],
                     ),
                   ),
@@ -354,12 +282,9 @@ class _AjoutMaisonState extends State<AjoutMaison> {
                       onPressed: _isSaving ? null : _submit,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _C.navy,
-                        disabledBackgroundColor: _C.navy.withValues(alpha: 0.5),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        elevation: 8,
-                        shadowColor: _C.navy.withValues(alpha: 0.22),
                       ),
                       child: _SaveButtonContent(isSaving: _isSaving),
                     ),
@@ -372,6 +297,7 @@ class _AjoutMaisonState extends State<AjoutMaison> {
       ),
     );
   }
+
 
   String? _required(String? value) {
     if (value == null || value.trim().isEmpty) {
@@ -564,7 +490,7 @@ class _TypeSelector extends StatelessWidget {
     _TypeOption('Maison', Icons.home_outlined),
     _TypeOption('Villa', Icons.villa_outlined),
     _TypeOption('Appartement', Icons.apartment_outlined),
-    _TypeOption('Chambre', Icons.meeting_room_outlined),
+    _TypeOption('Numero', Icons.meeting_room_outlined),
     _TypeOption('Bureau', Icons.business_outlined),
     _TypeOption('Studio', Icons.bed_outlined),
   ];

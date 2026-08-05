@@ -18,11 +18,27 @@ import 'package:gestion_locative/ajoutMaison.dart';
 import 'package:gestion_locative/ajout.dart';
 import 'package:gestion_locative/Accueil.dart';
 import 'package:gestion_locative/tenant_payment_page.dart';
-import 'package:gestion_locative/services/fcm_service.dart'; // ← ajout
+import 'package:gestion_locative/services/fcm_service.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
-// ── Clé globale pour accéder au contexte hors widget ──
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+final GlobalKey<ScaffoldMessengerState> messengerKey =
+    GlobalKey<ScaffoldMessengerState>();
+
+String _currentUserDisplayName() {
+  final user = FirebaseAuth.instance.currentUser;
+  final displayName = user?.displayName?.trim();
+  if (displayName != null && displayName.isNotEmpty) {
+    return displayName;
+  }
+
+  final email = user?.email?.trim();
+  if (email != null && email.isNotEmpty) {
+    return email.split('@').first;
+  }
+
+  return 'Utilisateur';
+}
 
 ThemeData _buildAppTheme() {
   const navy = Color(0xFF1A2B5E);
@@ -66,35 +82,106 @@ void main() async {
 
   if (kIsWeb) {
     usePathUrlStrategy();
-    final String url = Uri.base.toString();
+  }
 
-    if (url.contains('/pay') || url.contains('/payer')) {
-      await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform);
-      runApp(MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'Paiement Loyer',
-        theme: _buildAppTheme(),
-        home: TenantPaymentPage(
-          code: Uri.base.queryParameters['code'] ?? '',
+  runApp(const BootstrapApp());
+}
+
+class BootstrapApp extends StatefulWidget {
+  const BootstrapApp({super.key});
+
+  @override
+  State<BootstrapApp> createState() => _BootstrapAppState();
+}
+
+class _BootstrapAppState extends State<BootstrapApp> {
+  late final Future<void> _initFuture = _initialize();
+
+  Future<void> _initialize() async {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+
+    if (!kIsWeb) {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await FcmService.saveToken(user.uid);
+      }
+      _initFcm();
+    }
+  }
+
+  void _initFcm() {
+    FirebaseMessaging.onMessage.listen((RemoteMessage msg) {
+      final title = msg.notification?.title ?? '';
+      final body = msg.notification?.body ?? '';
+      final messenger = messengerKey.currentState;
+      if (messenger == null) return;
+
+      messenger.showSnackBar(
+        SnackBar(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+              Text(body),
+            ],
+          ),
+          backgroundColor: const Color(0xFF149954),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          duration: const Duration(seconds: 5),
         ),
-      ));
-      return;
-    }
+      );
+    });
+
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage msg) {
+      if (msg.data['type'] == 'paiement_effectue') {
+        navigatorKey.currentState?.pushNamed('/paiement');
+      }
+    });
   }
 
-  await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform);
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<void>(
+      future: _initFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: _buildAppTheme(),
+            home: const _BootstrapLoadingScreen(),
+          );
+        }
 
-  // ── Sauvegarder le token FCM si l'utilisateur est connecté ──
-  if (!kIsWeb) {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      await FcmService.saveToken(user.uid);
-    }
+        if (snapshot.hasError) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: _buildAppTheme(),
+            home: _BootstrapErrorScreen(error: snapshot.error.toString()),
+          );
+        }
+
+        if (kIsWeb) {
+          final url = Uri.base.toString();
+          if (url.contains('/pay') || url.contains('/payer')) {
+            return MaterialApp(
+              debugShowCheckedModeBanner: false,
+              title: 'Paiement Loyer',
+              theme: _buildAppTheme(),
+              home: TenantPaymentPage(
+                code: Uri.base.queryParameters['code'] ?? '',
+              ),
+            );
+          }
+        }
+
+        return const MyApp();
+      },
+    );
   }
-
-  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -104,13 +191,14 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      navigatorKey: navigatorKey, // ← ajout
+      navigatorKey: navigatorKey,
+      scaffoldMessengerKey: messengerKey,
       title: 'Gestion locative',
       theme: _buildAppTheme(),
       home: const Home(),
       routes: {
         '/connect': (context) => const Connect(),
-        '/accueil': (context) => Accueil(userName: "Utilisateur"),
+        '/accueil': (context) => Accueil(userName: _currentUserDisplayName()),
         '/mesBiens': (context) => const MesBiens(),
         '/paiement': (context) => const Paiement(),
         '/document': (context) => const Document(),
@@ -122,66 +210,69 @@ class MyApp extends StatelessWidget {
         '/ajoutLocataire': (context) => const Ajout(),
         '/payeCash': (context) => const PayeCash(),
       },
-      builder: (context, child) {
-        // ── Écouter les notifications FCM ──
-        return _FcmListener(child: child!);
-      },
     );
   }
 }
 
-// ─────────────────────────────────────────────
-// Widget qui écoute les notifications FCM
-// ─────────────────────────────────────────────
-class _FcmListener extends StatefulWidget {
-  final Widget child;
-  const _FcmListener({required this.child});
+class _BootstrapLoadingScreen extends StatelessWidget {
+  const _BootstrapLoadingScreen();
 
   @override
-  State<_FcmListener> createState() => _FcmListenerState();
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF132040),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            CircularProgressIndicator(color: Colors.white),
+            SizedBox(height: 16),
+            Text(
+              'Chargement de l’application...',
+              style: TextStyle(color: Colors.white, fontSize: 16),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
-class _FcmListenerState extends State<_FcmListener> {
+class _BootstrapErrorScreen extends StatelessWidget {
+  final String error;
+
+  const _BootstrapErrorScreen({required this.error});
+
   @override
-  void initState() {
-    super.initState();
-    if (!kIsWeb) _initFcm();
-  }
-
-  void _initFcm() {
-    // App au premier plan → snackbar
-    FirebaseMessaging.onMessage.listen((RemoteMessage msg) {
-      final title = msg.notification?.title ?? '';
-      final body  = msg.notification?.body  ?? '';
-
-      ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
-        SnackBar(
-          content: Column(
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF132040),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title,
-                  style: const TextStyle(fontWeight: FontWeight.w800)),
-              Text(body),
+              const Icon(Icons.error_outline, color: Colors.white, size: 48),
+              const SizedBox(height: 16),
+              const Text(
+                'Erreur au démarrage',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                error,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xFFD0D8F0)),
+              ),
             ],
           ),
-          backgroundColor: const Color(0xFF149954),
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          duration: const Duration(seconds: 5),
         ),
-      );
-    });
-
-    // Tap sur notif depuis le background
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage msg) {
-      if (msg.data['type'] == 'paiement_effectue') {
-        navigatorKey.currentState?.pushNamed('/paiement');
-      }
-    });
+      ),
+    );
   }
-
-  @override
-  Widget build(BuildContext context) => widget.child;
 }

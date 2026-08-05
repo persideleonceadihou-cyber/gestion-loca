@@ -212,12 +212,17 @@ class _MesBiensState extends State<MesBiens> {
 
   Future<void> _addProperty() async {
     final result = await Navigator.pushNamed(context, '/ajout');
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null || result is! Map<String, dynamic>) return;
+    if (!mounted) return;
 
-    setState(() {
-      _localProperties.insert(0, _Property.fromMap(result));
-    });
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null && result is Map<String, dynamic>) {
+      setState(() {
+        _localProperties.insert(0, _Property.fromMap(result));
+      });
+      return;
+    }
+
+    setState(() {});
   }
 
   Widget _propertiesContent(

@@ -12,7 +12,7 @@ class AppColors {
   // Couleurs principales
   static const navy = Color(0xFF1A2B5E); // fond header, texte titre
   static const navyDark = Color(0xFF132040); // variante sombre
-  static const cream = Color.fromARGB(255, 228, 228, 225); // bouton principal, logo circle
+  static const cream = Color(0xFFF2C94C); // bouton principal, logo circle
   static const creamLight = Color(0xFFFDF6DC); // fond général, champs input
   static const creamBorder = Color(0xFFE8C84A); // bordure champs actifs
 
@@ -64,6 +64,7 @@ class _ConnectState extends State<Connect> with SingleTickerProviderStateMixin {
   // Rôle inscription
   String _role = 'Propriétaire'; // ou 'Agent immo'
 
+  final _identifiantController = TextEditingController();
   final _prenomController = TextEditingController();
   final _nomController = TextEditingController();
   final _emailController = TextEditingController();
@@ -90,6 +91,7 @@ class _ConnectState extends State<Connect> with SingleTickerProviderStateMixin {
   void dispose() {
     _animCtrl.dispose();
     for (final c in [
+      _identifiantController,
       _prenomController,
       _nomController,
       _emailController,
@@ -116,18 +118,28 @@ class _ConnectState extends State<Connect> with SingleTickerProviderStateMixin {
 
   Future<void> _handleLogin() async {
     try {
-      final email = _normalizedEmail;
+      final email = await _resolveLoginEmail(_loginIdentifier);
       await _auth.signInWithEmailAndPassword(
         email: email,
         password: _passwordController.text.trim(),
       );
       final name = _auth.currentUser?.displayName ?? email.split('@').first;
-      await _syncUserProfile(displayName: name, email: email);
+      try {
+        await _syncUserProfile(
+          displayName: name,
+          email: email,
+          username: _loginIdentifier,
+        );
+      } catch (e) {
+        debugPrint('Profile sync skipped after login: $e');
+      }
       _showSnack('Connexion réussie ✅');
       _goToAcceuil(name);
       // _goToAcceuil(name);
     } on FirebaseAuthException catch (e) {
-      await _showError(_authMessage(e));
+      await _showFirebaseAuthError(e);
+    } catch (e) {
+      await _showError('Erreur inattendue pendant la connexion: $e');
     }
   }
 
@@ -138,6 +150,8 @@ class _ConnectState extends State<Connect> with SingleTickerProviderStateMixin {
         await _auth.signOut();
       }
 
+      final username = _normalizedUsername;
+      await _ensureUsernameAvailable(username);
       final email = _normalizedEmail;
       final cred = await _auth.createUserWithEmailAndPassword(
         email: email,
@@ -146,13 +160,18 @@ class _ConnectState extends State<Connect> with SingleTickerProviderStateMixin {
       final displayName =
           '${_prenomController.text.trim()} ${_nomController.text.trim()}';
       await cred.user?.updateDisplayName(displayName);
-      await _syncUserProfile(
-        displayName: displayName,
-        email: email,
-        phone: _phoneController.text.trim(),
-        role: _role,
-        createdAt: true,
-      );
+      try {
+        await _syncUserProfile(
+          displayName: displayName,
+          email: email,
+          username: username,
+          phone: _phoneController.text.trim(),
+          role: _role,
+          createdAt: true,
+        );
+      } catch (e) {
+        debugPrint('Profile sync skipped after register: $e');
+      }
       _showSnack('Inscription réussie 🎉');
       _goToAcceuil(displayName);
       // _goToDashboard(displayName);
@@ -161,12 +180,15 @@ class _ConnectState extends State<Connect> with SingleTickerProviderStateMixin {
         await _handleExistingAccountRegister();
         return;
       }
-      await _showError(_authMessage(e));
+      await _showFirebaseAuthError(e);
+    } catch (e) {
+      await _showError('Erreur inattendue pendant l’inscription: $e');
     }
   }
 
   Future<void> _handleExistingAccountRegister() async {
     try {
+      final username = _normalizedUsername;
       final email = _normalizedEmail;
       await _auth.signInWithEmailAndPassword(
         email: email,
@@ -176,28 +198,30 @@ class _ConnectState extends State<Connect> with SingleTickerProviderStateMixin {
           '${_prenomController.text.trim()} ${_nomController.text.trim()}'
               .trim();
       await _auth.currentUser?.updateDisplayName(displayName);
-      await _syncUserProfile(
-        displayName: displayName,
-        email: email,
-        phone: _phoneController.text.trim(),
-        role: _role,
-      );
+      try {
+        await _syncUserProfile(
+          displayName: displayName,
+          email: email,
+          username: username,
+          phone: _phoneController.text.trim(),
+          role: _role,
+        );
+      } catch (e) {
+        debugPrint('Profile sync skipped for existing account: $e');
+      }
       _showSnack('Compte existant retrouvé, connexion réussie ✅');
       _goToAcceuil(displayName);
     } on FirebaseAuthException catch (e) {
-      await _showError(_authMessage(e));
+      await _showFirebaseAuthError(e);
+    } catch (e) {
+      await _showError('Erreur inattendue: $e');
     }
   }
 
   Future<void> _sendPasswordReset() async {
-    final email = _emailController.text.trim().toLowerCase();
+    final email = await _resolveLoginEmail(_loginIdentifier, allowDirectEmail: true);
     if (email.isEmpty) {
-      await _showError('Entre ton adresse email pour recevoir le lien.');
-      return;
-    }
-    final emailError = _emailValidator(email);
-    if (emailError != null) {
-      await _showError('Adresse email invalide.');
+      await _showError('Entre ton identifiant ou ton adresse email.');
       return;
     }
 
@@ -207,7 +231,7 @@ class _ConnectState extends State<Connect> with SingleTickerProviderStateMixin {
       _showSnack('Lien de réinitialisation envoyé à $email');
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
-      await _showError(_authMessage(e));
+      await _showFirebaseAuthError(e);
     }
   }
 
@@ -240,6 +264,7 @@ class _ConnectState extends State<Connect> with SingleTickerProviderStateMixin {
   Future<void> _syncUserProfile({
     required String displayName,
     required String email,
+    String? username,
     String? phone,
     String? role,
     bool createdAt = false,
@@ -253,6 +278,10 @@ class _ConnectState extends State<Connect> with SingleTickerProviderStateMixin {
       'updatedAt': FieldValue.serverTimestamp(),
     };
 
+    if (username != null && username.trim().isNotEmpty) {
+      payload['username'] = username.trim();
+      payload['usernameLower'] = username.trim().toLowerCase();
+    }
     if (phone != null && phone.trim().isNotEmpty) {
       payload['phone'] = phone.trim();
     }
@@ -286,10 +315,73 @@ class _ConnectState extends State<Connect> with SingleTickerProviderStateMixin {
     );
   }
 
+  Future<void> _ensureUsernameAvailable(String usernameLower) async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .where('usernameLower', isEqualTo: usernameLower)
+        .limit(1)
+        .get();
+
+    if (snapshot.docs.isNotEmpty) {
+      throw FirebaseAuthException(
+        code: 'username-already-in-use',
+        message: 'Cet identifiant est déjà utilisé.',
+      );
+    }
+  }
+
+  Future<String> _resolveLoginEmail(
+    String identifier, {
+    bool allowDirectEmail = false,
+  }) async {
+    final value = identifier.trim().toLowerCase();
+    if (value.isEmpty) return '';
+
+    if (value.contains('@')) {
+      if (!allowDirectEmail && _emailValidator(value) != null) {
+        throw FirebaseAuthException(
+          code: 'invalid-email',
+          message: 'Adresse email invalide.',
+        );
+      }
+      return value;
+    }
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .where('usernameLower', isEqualTo: value)
+        .limit(1)
+        .get();
+
+    if (snapshot.docs.isEmpty) {
+      throw FirebaseAuthException(
+        code: 'user-not-found',
+        message: 'Aucun compte trouvé avec cet identifiant.',
+      );
+    }
+
+    final data = snapshot.docs.first.data();
+    final email = data['email']?.toString().trim().toLowerCase() ?? '';
+    if (email.isEmpty) {
+      throw FirebaseAuthException(
+        code: 'invalid-login-credentials',
+        message: 'Le compte lié à cet identifiant est incomplet.',
+      );
+    }
+    return email;
+  }
+
+  Future<void> _showFirebaseAuthError(FirebaseAuthException e) async {
+    await _showError(
+      'Code Firebase: ${e.code}\n\n${_authMessage(e)}',
+    );
+  }
+
   void _toggleMode() {
     setState(() {
       _showLogin = !_showLogin;
       for (final c in [
+        _identifiantController,
         _prenomController,
         _nomController,
         _emailController,
@@ -346,7 +438,7 @@ class _ConnectState extends State<Connect> with SingleTickerProviderStateMixin {
             ),
             child: Center(
               child: Image.asset(
-                'assets/images/logo (2).png',
+                'assets/images/logo_2.png',
                 width: 60,
                 height: 60,
                 fit: BoxFit.contain,
@@ -393,7 +485,7 @@ class _ConnectState extends State<Connect> with SingleTickerProviderStateMixin {
             children: [
               // Titre de la card
               Text(
-                _showLogin ? 'Connexion' : 'Je suis',
+                _showLogin ? 'Connexion' : 'Créer un compte',
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -408,12 +500,18 @@ class _ConnectState extends State<Connect> with SingleTickerProviderStateMixin {
                 const SizedBox(height: 20),
                 _buildSectionTitle('INFORMATION'),
                 const SizedBox(height: 12),
+                _input(
+                  controller: _identifiantController,
+                  hint: 'Identifiant',
+                  validator: _usernameValidator,
+                ),
+                const SizedBox(height: 10),
                 Row(
                   children: [
                     Expanded(
                       child: _input(
                         controller: _prenomController,
-                        hint: 'Prenom',
+                        hint: 'Prénom',
                         validator: (v) => _req(v, 'Prénom'),
                       ),
                     ),
@@ -473,13 +571,12 @@ class _ConnectState extends State<Connect> with SingleTickerProviderStateMixin {
 
               // ── CONNEXION : champs email + mdp ────────
               if (_showLogin) ...[
-                _buildSectionLabel('EMAIL'),
+                _buildSectionLabel('IDENTIFIANT OU E-MAIL'),
                 const SizedBox(height: 6),
                 _input(
-                  controller: _emailController,
-                  hint: 'votre@gmail.com',
-                  keyboardType: TextInputType.emailAddress,
-                  validator: _emailValidator,
+                  controller: _identifiantController,
+                  hint: 'votre.identifiant ou vous@email.com',
+                  validator: _loginIdentifierValidator,
                 ),
                 const SizedBox(height: 16),
                 _buildSectionLabel('Mot de passe'),
@@ -524,7 +621,7 @@ class _ConnectState extends State<Connect> with SingleTickerProviderStateMixin {
                           ),
                         )
                       : Text(
-                          _showLogin ? 'Se coconnecter' : 'Creer un compte',
+                          _showLogin ? 'Se connecter' : 'Créer un compte',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -592,7 +689,7 @@ class _ConnectState extends State<Connect> with SingleTickerProviderStateMixin {
   Widget _buildRoleSelector() {
     return Row(
       children: [
-        Expanded(child: _roleBtn('Propretaire')),
+        Expanded(child: _roleBtn('Propriétaire')),
         const SizedBox(width: 12),
         Expanded(child: _roleBtn('Agent immo')),
       ],
@@ -724,6 +821,22 @@ class _ConnectState extends State<Connect> with SingleTickerProviderStateMixin {
     return null;
   }
 
+  String? _usernameValidator(String? v) {
+    if (v == null || v.trim().isEmpty) return 'Identifiant requis';
+    if (v.trim().length < 3) return 'Minimum 3 caractères';
+    if (v.trim().contains(' ')) return 'Pas d’espace dans l’identifiant';
+    return null;
+  }
+
+  String? _loginIdentifierValidator(String? v) {
+    if (v == null || v.trim().isEmpty) return 'Identifiant ou email requis';
+    final value = v.trim();
+    if (value.contains('@')) {
+      return _emailValidator(value);
+    }
+    return _usernameValidator(value);
+  }
+
   String? _pwdValidator(String? v) {
     if (v == null || v.trim().isEmpty) return 'Mot de passe requis';
     if (v.length < 6) return 'Minimum 6 caractères';
@@ -739,4 +852,6 @@ class _ConnectState extends State<Connect> with SingleTickerProviderStateMixin {
   }
 
   String get _normalizedEmail => _emailController.text.trim().toLowerCase();
+  String get _normalizedUsername => _identifiantController.text.trim().toLowerCase();
+  String get _loginIdentifier => _identifiantController.text.trim();
 }

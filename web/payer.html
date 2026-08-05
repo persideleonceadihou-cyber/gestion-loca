@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Paiement du loyer</title>
+  <script src="firebase-config.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -531,8 +532,8 @@
   // ══════════════════════════════════════════
   // CONFIG FIREBASE — remplace par tes vraies valeurs
   // ══════════════════════════════════════════
-  const FIREBASE_PROJECT_ID = 'gestion-loca-66598';
-  const API_KEY             = 'AIzaSyBvU5twv8dFCpb-P95iO0Vju0tOAF2n9lw';
+  const FIREBASE_PROJECT_ID = self.FIREBASE_PROJECT_ID;
+  const API_KEY             = self.FIREBASE_API_KEY;
 
   // ── État global ──
   let currentTenant = null;

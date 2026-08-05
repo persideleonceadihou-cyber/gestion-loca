@@ -124,6 +124,8 @@ class _ProfilState extends State<Profil> {
 
                   // Bouton déconnexion
                   _buildSignOut(context),
+                  const SizedBox(height: 12),
+                  _buildDeleteAccount(context),
                 ],
               ),
             ),
@@ -327,6 +329,31 @@ class _ProfilState extends State<Profil> {
     );
   }
 
+  Widget _buildDeleteAccount(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _confirmDeleteAccount(context),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: _C.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _C.redBd),
+        ),
+        child: const Center(
+          child: Text(
+            'Supprimer mon compte',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: _C.redText,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   // ── BOTTOM NAV ────────────────────────────────────────
   Widget _buildBottomNav(BuildContext context) {
     return Container(
@@ -468,6 +495,75 @@ class _ProfilState extends State<Profil> {
       await FirebaseAuth.instance.signOut();
       if (!context.mounted) return;
       Navigator.pushNamedAndRemoveUntil(context, '/connect', (route) => false);
+    }
+  }
+
+  Future<void> _confirmDeleteAccount(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Supprimer le compte ?',
+          style: TextStyle(fontWeight: FontWeight.bold, color: _C.navy),
+        ),
+        content: const Text(
+          'Cette action supprime l’utilisateur Firebase courant et ses données de profil locales. Elle est irréversible.',
+          style: TextStyle(color: _C.textMuted),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annuler', style: TextStyle(color: _C.textMuted)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _C.redText,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              elevation: 0,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              'Supprimer',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (ok != true || !context.mounted) return;
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      // On supprime d'abord le document Firestore lié au compte courant.
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .delete();
+      await user.delete();
+      if (!context.mounted) return;
+      Navigator.pushNamedAndRemoveUntil(context, '/connect', (route) => false);
+    } on FirebaseAuthException catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.code == 'requires-recent-login'
+                ? 'Reconnexion requise avant suppression du compte.'
+                : (e.message ?? 'Impossible de supprimer le compte'),
+          ),
+          backgroundColor: const Color(0xFF993C1D),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
     }
   }
 }
