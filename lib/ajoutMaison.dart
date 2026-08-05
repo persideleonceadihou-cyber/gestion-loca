@@ -104,7 +104,9 @@ class _AjoutMaisonState extends State<AjoutMaison> {
     } on FirebaseException catch (e) {
       if (mounted) {
         setState(() => _isSaving = false);
-        _showSaveError(e.message ?? 'Enregistrement impossible.');
+        _showSaveError(
+          'Code Firebase: ${e.code}\n${e.message ?? "Enregistrement impossible."}',
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -296,8 +298,9 @@ class _AjoutMaisonState extends State<AjoutMaison> {
   }
 
   String? _required(String? value) {
-    if (value == null || value.trim().isEmpty)
+    if (value == null || value.trim().isEmpty) {
       return 'Ce champ est obligatoire';
+    }
     return null;
   }
 }

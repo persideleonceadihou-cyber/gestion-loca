@@ -17,9 +17,9 @@ dependencies:
     path: third_party/document_scanner_flutter
   image_picker: ^1.1.2
   file_picker: ^8.0.0
-  firebase_core: ^3.12.1
-  cloud_firestore: ^5.0.1
-  firebase_auth: ^5.5.2
+  firebase_core: ^3.15.2
+  cloud_firestore: ^5.6.12
+  firebase_auth: ^5.7.0
   firebase_messaging: ^15.2.10
   url_launcher: ^6.3.0
   flutter_web_plugins:
@@ -48,7 +48,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/logo_launcher.png
-    - assets/images/logo (2).png
+    - assets/images/logo_2.png
     - assets/images/image1 (2).jpg
     - assets/images/img (2).jpg
     - assets/images/img.jpeg
