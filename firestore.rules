@@ -1,11 +1,9 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() {
       return request.auth != null;
     }
-
     function isOwner(userId) {
       return signedIn() && request.auth.uid == userId;
     }
@@ -18,8 +16,15 @@ service cloud.firestore {
         allow create, read, update, delete: if isOwner(userId);
       }
 
-      match /locataires/{locataireId} {
-        allow create, read, update, delete: if isOwner(userId);
+      match /locataires/{tenantId} {
+        allow read: if true;
+        allow create, delete: if isOwner(userId);
+        allow update: if isOwner(userId)
+                      || (request.resource.data.diff(resource.data)
+                            .affectedKeys().hasOnly(['lastPaymentDate', 'lastPaymentAmount', 'confirmationCode'])
+                          && request.resource.data.confirmationCode == resource.data.paymentCode
+                          && request.resource.data.lastPaymentAmount is number
+                          && request.resource.data.lastPaymentAmount > 0);
       }
 
       match /biens/{bienId} {
@@ -27,12 +32,16 @@ service cloud.firestore {
       }
 
       match /paiements/{paiementId} {
-        allow create, read, update, delete: if isOwner(userId);
+        allow read, update, delete: if isOwner(userId);
+        allow create: if isOwner(userId)
+                      || (request.resource.data.keys().hasAll(['amount', 'date', 'tenantId', 'confirmationCode'])
+                          && request.resource.data.amount is number
+                          && request.resource.data.amount > 0
+                          && get(/databases/$(database)/documents/users/$(userId)/locataires/$(request.resource.data.tenantId))
+                               .data.paymentCode == request.resource.data.confirmationCode);
       }
     }
 
-    // Codes de paiement — collection racine
-    // Lecture publique pour lookup par code, écriture réservée aux admins authentifiés
     match /payment_codes/{code} {
       allow read: if true;
       allow write: if signedIn();
